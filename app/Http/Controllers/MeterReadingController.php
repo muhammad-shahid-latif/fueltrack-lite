@@ -1,0 +1,104 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\Shift;
+use App\Http\Requests\StoreMeterReadingRequest;
+use App\Models\MeterReading;
+use App\Models\Nozzle;
+use App\Services\DailyClosingService;
+use App\Services\MeterReadingService;
+use App\Support\BusinessClock;
+use App\Support\Format;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\View\View;
+
+class MeterReadingController extends Controller
+{
+    public function index(Request $request, DailyClosingService $closings): View
+    {
+        $request->validate([
+            'date' => ['nullable', 'date'],
+            'shift' => ['nullable', 'in:'.implode(',', array_column(Shift::cases(), 'value'))],
+        ]);
+
+        $date = $this->dateFrom($request);
+        $shift = $request->enum('shift', Shift::class);
+
+        $readings = MeterReading::query()
+            ->with(['nozzle.pump', 'nozzle.fuelProduct', 'sale', 'recorder'])
+            ->whereDate('business_date', $date)
+            ->when($shift, fn (Builder $query, Shift $shift) => $query->where('shift', $shift->value))
+            ->latest('id')
+            ->paginate(30)
+            ->withQueryString();
+
+        return view('meter-readings.index', [
+            'date' => $date,
+            'shift' => $shift,
+            'shifts' => Shift::cases(),
+            'readings' => $readings,
+            'summary' => $closings->summary($date),
+        ]);
+    }
+
+    public function create(Request $request, DailyClosingService $closings): View
+    {
+        $nozzles = Nozzle::query()
+            ->with(['pump', 'fuelProduct'])
+            ->where('is_active', true)
+            ->whereHas('pump', fn (Builder $query) => $query->where('is_active', true))
+            ->whereHas('fuelProduct', fn (Builder $query) => $query->fuel()->active())
+            ->orderBy('pump_id')
+            ->orderBy('number')
+            ->get();
+
+        return view('meter-readings.create', [
+            'nozzles' => $nozzles->map(fn (Nozzle $nozzle) => [
+                'id' => $nozzle->id,
+                'label' => $nozzle->label(),
+                'fuel' => $nozzle->fuelProduct->name,
+                'rate' => (float) $nozzle->fuelProduct->selling_price,
+                'current_meter' => Format::meter($nozzle->current_meter),
+            ])->values(),
+            'selectedNozzleId' => $request->integer('nozzle') ?: null,
+            'shifts' => Shift::cases(),
+            'currentShift' => Shift::at(BusinessClock::now()),
+            'businessDate' => BusinessClock::today(),
+            'todayIsClosed' => $closings->isClosed(BusinessClock::today()),
+        ]);
+    }
+
+    public function store(StoreMeterReadingRequest $request, MeterReadingService $service): RedirectResponse
+    {
+        $reading = $service->record(
+            nozzle: Nozzle::findOrFail($request->integer('nozzle_id')),
+            date: BusinessClock::today(),
+            shift: $request->enum('shift', Shift::class),
+            openingMeter: (float) $request->input('opening_meter'),
+            closingMeter: (float) $request->input('closing_meter'),
+            recordedBy: $request->user(),
+            notes: $request->input('notes'),
+        );
+
+        $sale = $reading->sale;
+
+        return redirect()
+            ->route('meter-readings.index')
+            ->with('success', sprintf(
+                '%s shift reading saved: %s × %s = %s',
+                $reading->shift->label(),
+                Format::liters($sale->quantity),
+                Format::money($sale->rate),
+                Format::money($sale->amount),
+            ));
+    }
+
+    private function dateFrom(Request $request): Carbon
+    {
+        return $request->date('date') ?? BusinessClock::today();
+    }
+}

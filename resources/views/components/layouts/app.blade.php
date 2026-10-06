@@ -1,4 +1,4 @@
-@props(['title' => null])
+@props(['title' => null, 'subtitle' => null])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -6,7 +6,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#05303b">
     <title>{{ $title ? $title.' · ' : '' }}{{ config('app.name') }}</title>
+    @include('partials.fonts')
     @vite('resources/js/app.js')
 </head>
 <body>
@@ -14,32 +16,38 @@
         @include('partials.sidebar')
 
         <div class="flex-grow-1 d-flex flex-column" style="min-width: 0;">
-            <header class="app-topbar sticky-top">
-                <div class="d-flex align-items-center gap-2 px-3 px-lg-4 py-2">
+            <header class="app-topbar sticky-top d-print-none">
+                <div class="d-flex align-items-center gap-3 px-3 px-lg-4 py-3">
                     <button class="btn btn-light d-lg-none" type="button"
                             data-bs-toggle="offcanvas" data-bs-target="#appSidebar"
                             aria-controls="appSidebar" aria-label="Open menu">
                         <i class="bi bi-list fs-5"></i>
                     </button>
 
-                    <h1 class="h5 mb-0 fw-semibold text-truncate">{{ $title }}</h1>
+                    <div style="min-width: 0;">
+                        <h1 class="mb-0 text-truncate">{{ $title }}</h1>
+                        @if ($subtitle)
+                            <div class="small text-secondary text-truncate">{{ $subtitle }}</div>
+                        @endif
+                    </div>
 
                     <div class="ms-auto dropdown">
-                        <button class="btn btn-light d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle fs-5"></i>
+                        <button class="btn app-user d-flex align-items-center gap-2 border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="app-user-avatar">{{ str(auth()->user()->name)->substr(0, 1)->upper() }}</span>
                             <span class="d-none d-sm-inline text-start lh-sm">
                                 <span class="d-block small fw-semibold">{{ auth()->user()->name }}</span>
-                                <span class="d-block text-muted" style="font-size: .75rem;">{{ auth()->user()->role->label() }}</span>
+                                <span class="d-block text-secondary" style="font-size: .74rem;">{{ auth()->user()->role->label() }}</span>
                             </span>
+                            <i class="bi bi-chevron-down small text-secondary"></i>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                            <li class="dropdown-item-text small text-muted">{{ auth()->user()->email }}</li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2">
+                            <li class="dropdown-item-text small text-secondary">{{ auth()->user()->email }}</li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button type="submit" class="dropdown-item text-danger">
-                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    <button type="submit" class="dropdown-item rounded-3 text-danger">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Log out
                                     </button>
                                 </form>
                             </li>
@@ -54,8 +62,8 @@
                 {{ $slot }}
             </main>
 
-            <footer class="px-3 px-lg-4 py-3 small text-muted border-top bg-white">
-                {{ config('app.name') }} · {{ config('fueltrack.station.name') }}
+            <footer class="px-3 px-lg-4 py-3 small text-secondary d-print-none">
+                {{ config('app.name') }} for {{ \App\Support\Station::name() }}
             </footer>
         </div>
     </div>

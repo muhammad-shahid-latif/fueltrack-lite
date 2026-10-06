@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Shift;
 use App\Models\FuelProduct;
 use App\Models\FuelPurchase;
 use App\Models\Nozzle;
@@ -16,11 +17,11 @@ test('closing stock is opening plus received minus sold', function () {
 
     // Yesterday: +2,000 received, −500 sold → today opens at 10,000.
     FuelPurchase::factory()->for($product)->create(['business_date' => today()->subDay(), 'quantity' => 2000]);
-    $readings->record($nozzle, today()->subDay(), 0, 500);
+    $readings->record($nozzle, today()->subDay(), Shift::Morning, 0, 500);
 
     // Today: +10,000 received, −6,200 sold.
     FuelPurchase::factory()->for($product)->create(['business_date' => today(), 'quantity' => 10000]);
-    $readings->record($nozzle, today(), 500, 6700);
+    $readings->record($nozzle, today(), Shift::Morning, 500, 6700);
 
     $row = app(FuelStockService::class)->summary(today())->first();
 

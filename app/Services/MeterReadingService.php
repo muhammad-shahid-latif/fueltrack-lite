@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\Shift;
 use App\Models\MeterReading;
 use App\Models\Nozzle;
 use App\Models\User;
@@ -26,6 +27,7 @@ class MeterReadingService
     public function record(
         Nozzle $nozzle,
         DateTimeInterface|string $date,
+        Shift $shift,
         float $openingMeter,
         float $closingMeter,
         ?User $recordedBy = null,
@@ -34,11 +36,12 @@ class MeterReadingService
     ): MeterReading {
         $date = Carbon::parse($date)->toDateString();
 
-        return DB::transaction(function () use ($nozzle, $date, $openingMeter, $closingMeter, $recordedBy, $rate, $notes) {
+        return DB::transaction(function () use ($nozzle, $date, $shift, $openingMeter, $closingMeter, $recordedBy, $rate, $notes) {
             $this->closings->assertOpen($date);
 
-            $nozzle = Nozzle::query()->with('fuelProduct')->lockForUpdate()->findOrFail($nozzle->id);
+            $nozzle = Nozzle::query()->with(['fuelProduct', 'pump'])->lockForUpdate()->findOrFail($nozzle->id);
 
+            $this->validateNozzle($nozzle);
             $this->validateMeters($nozzle, $openingMeter, $closingMeter);
 
             $liters = round($closingMeter - $openingMeter, 2);
@@ -47,6 +50,7 @@ class MeterReadingService
             $reading = MeterReading::create([
                 'nozzle_id' => $nozzle->id,
                 'business_date' => $date,
+                'shift' => $shift,
                 'opening_meter' => $openingMeter,
                 'closing_meter' => $closingMeter,
                 'liters' => $liters,
@@ -57,15 +61,30 @@ class MeterReadingService
             $reading->sale()->create([
                 'fuel_product_id' => $nozzle->fuel_product_id,
                 'business_date' => $date,
-                'liters' => $liters,
+                'quantity' => $liters,
                 'rate' => $rate,
                 'amount' => round($liters * $rate, 2),
+                'recorded_by' => $recordedBy?->id,
             ]);
 
             $nozzle->update(['current_meter' => $closingMeter]);
 
             return $reading;
         });
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function validateNozzle(Nozzle $nozzle): void
+    {
+        if (! $nozzle->is_active || ! $nozzle->pump->is_active) {
+            throw ValidationException::withMessages(['nozzle_id' => 'This nozzle or its pump is inactive.']);
+        }
+
+        if (! $nozzle->fuelProduct->isMetered()) {
+            throw ValidationException::withMessages(['nozzle_id' => 'This nozzle is not linked to a fuel product.']);
+        }
     }
 
     /**

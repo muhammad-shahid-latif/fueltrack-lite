@@ -1,27 +1,25 @@
 @php($navigation = \App\Support\Navigation::for(auth()->user()))
 
-<div class="app-sidebar-wrap">
-    <aside class="offcanvas-lg offcanvas-start app-sidebar" data-bs-theme="dark" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+<div class="app-sidebar-wrap d-print-none">
+    <aside class="offcanvas-lg offcanvas-start app-sidebar h-100" data-bs-theme="dark" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
         <div class="offcanvas-header d-lg-none">
             <span class="offcanvas-title text-white fw-semibold" id="appSidebarLabel">Menu</span>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Close"></button>
         </div>
 
-        <div class="offcanvas-body d-flex flex-column p-3 w-100">
-            <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 text-decoration-none text-white mb-2 px-2">
+        <div class="offcanvas-body d-flex flex-column p-3 w-100 h-100">
+            <a href="{{ route('dashboard') }}" class="app-brand d-flex align-items-center gap-2 text-decoration-none">
                 <span class="app-brand-mark"><i class="bi bi-fuel-pump-fill"></i></span>
-                <span class="lh-sm">
-                    <span class="d-block fw-bold">FuelTrack Lite</span>
-                    <span class="d-block small text-white-50 text-truncate" style="max-width: 170px;">{{ config('fueltrack.station.name') }}</span>
+                <span style="min-width: 0;">
+                    <span class="app-brand-name d-block">FuelTrack</span>
+                    <span class="d-block small text-white-50 text-truncate" style="max-width: 175px;">{{ \App\Support\Station::name() }}</span>
                 </span>
             </a>
 
-            <nav class="app-nav">
+            <nav class="app-nav" aria-label="Main">
                 @foreach ($navigation as $group)
                     @if ($group['heading'])
                         <div class="app-nav-heading">{{ $group['heading'] }}</div>
-                    @else
-                        <div class="mt-2"></div>
                     @endif
 
                     <ul class="nav flex-column gap-1">
@@ -38,7 +36,6 @@
                                     <span class="nav-link disabled" aria-disabled="true">
                                         <i class="bi bi-{{ $item['icon'] }}"></i>
                                         <span>{{ $item['label'] }}</span>
-                                        <span class="badge text-bg-secondary ms-auto fw-normal">Soon</span>
                                     </span>
                                 @endif
                             </li>
@@ -46,6 +43,11 @@
                     </ul>
                 @endforeach
             </nav>
+
+            <div class="app-sidebar-clock mt-4" title="Entries are dated by the server clock">
+                Business date (server)
+                <strong>{{ \App\Support\BusinessClock::now()->format('d M Y') }}</strong>
+            </div>
         </div>
     </aside>
 </div>

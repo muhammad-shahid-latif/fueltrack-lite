@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Sales are only created through MeterReadingService, never directly.
+ * Sales come from nozzle meter readings (fuel) or the counter (oil and other
+ * items). Created only through MeterReadingService or SaleService.
  */
 class Sale extends Model
 {
@@ -17,9 +18,11 @@ class Sale extends Model
         'meter_reading_id',
         'fuel_product_id',
         'business_date',
-        'liters',
+        'quantity',
         'rate',
         'amount',
+        'recorded_by',
+        'notes',
     ];
 
     /**
@@ -29,7 +32,7 @@ class Sale extends Model
     {
         return [
             'business_date' => 'date',
-            'liters' => 'decimal:2',
+            'quantity' => 'decimal:2',
             'rate' => 'decimal:2',
             'amount' => 'decimal:2',
         ];
@@ -49,5 +52,18 @@ class Sale extends Model
     public function fuelProduct(): BelongsTo
     {
         return $this->belongsTo(FuelProduct::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function recorder(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function isCounterSale(): bool
+    {
+        return $this->meter_reading_id === null;
     }
 }

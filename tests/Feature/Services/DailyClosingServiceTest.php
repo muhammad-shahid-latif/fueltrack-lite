@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PaymentMethod;
+use App\Enums\Shift;
 use App\Models\Expense;
 use App\Models\FuelProduct;
 use App\Models\Nozzle;
@@ -19,7 +20,7 @@ beforeEach(function () {
         ->create();
 
     // 4,000 L × Rs. 250 = Rs. 1,000,000
-    app(MeterReadingService::class)->record($nozzle, today(), 0, 4000);
+    app(MeterReadingService::class)->record($nozzle, today(), Shift::Morning, 0, 4000);
 
     Expense::factory()->create(['amount' => 30000, 'payment_method' => PaymentMethod::Cash]);
     Expense::factory()->create(['amount' => 15000, 'payment_method' => PaymentMethod::Bank]);

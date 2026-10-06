@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\Shift;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -17,6 +18,7 @@ class MeterReading extends Model
     protected $fillable = [
         'nozzle_id',
         'business_date',
+        'shift',
         'opening_meter',
         'closing_meter',
         'liters',
@@ -31,6 +33,7 @@ class MeterReading extends Model
     {
         return [
             'business_date' => 'date',
+            'shift' => Shift::class,
             'opening_meter' => 'decimal:2',
             'closing_meter' => 'decimal:2',
             'liters' => 'decimal:2',

@@ -10,7 +10,7 @@ beforeEach(fn () => $this->withoutVite());
 test('login screen can be rendered', function () {
     $this->get('/login')
         ->assertOk()
-        ->assertSee('FuelTrack Lite');
+        ->assertSee('Log in');
 });
 
 test('guests are redirected to login', function () {

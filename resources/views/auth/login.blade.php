@@ -1,64 +1,84 @@
-<x-layouts.guest title="Login">
-    <div class="auth-card">
-        <div class="text-center text-white mb-4">
-            <div class="app-brand-mark app-brand-mark-lg mx-auto mb-3">
-                <i class="bi bi-fuel-pump-fill fs-4"></i>
+<x-layouts.guest title="Log in">
+    <div class="container-xxl min-vh-100 d-flex align-items-center py-4">
+        <div class="row w-100 g-5 align-items-center justify-content-center mx-0">
+            <div class="col-lg-6 d-none d-lg-block text-white">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <span class="app-brand-mark"><i class="bi bi-fuel-pump-fill"></i></span>
+                    <span class="app-brand-name fs-4">FuelTrack</span>
+                </div>
+                <h1 class="display-5 fw-bold mb-3" style="max-width: 15ch;">Every liter, every rupee, every shift.</h1>
+                <p class="fs-5 text-white-50 mb-5" style="max-width: 44ch;">
+                    Meter readings, stock, expenses and the daily cash count for {{ \App\Support\Station::name() }}, in one place.
+                </p>
+
+                <div class="auth-art" aria-hidden="true">
+                    @include('auth.partials.dispenser-art')
+                </div>
             </div>
-            <h1 class="h3 fw-bold mb-1">FuelTrack Lite</h1>
-            <p class="text-white-50 mb-0">{{ config('fueltrack.station.name') }}</p>
-        </div>
 
-        <div class="card border-0 shadow-lg">
-            <div class="card-body p-4">
-                <form method="POST" action="{{ route('login.store') }}" x-data="{ submitting: false }" @submit="submitting = true" novalidate>
-                    @csrf
+            <div class="col-lg-5 col-xl-4">
+                <div class="text-center text-white mb-4 d-lg-none">
+                    <span class="app-brand-mark mx-auto mb-3" style="width: 56px; height: 56px;"><i class="bi bi-fuel-pump-fill fs-4"></i></span>
+                    <div class="app-brand-name fs-3">FuelTrack</div>
+                    <div class="text-white-50">{{ \App\Support\Station::name() }}</div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input id="email" type="email" name="email" value="{{ old('email') }}"
-                               class="form-control form-control-lg @error('email') is-invalid @enderror"
-                               autocomplete="username" required autofocus>
-                        @error('email')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+                <div class="card auth-card mx-auto">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="h3 fw-bold mb-1">Log in</h2>
+                        <p class="text-secondary mb-4">{{ \App\Support\Station::name() }}</p>
 
-                    <div class="mb-3" x-data="{ show: false }">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group has-validation">
-                            <input id="password" :type="show ? 'text' : 'password'" type="password" name="password"
-                                   class="form-control form-control-lg @error('password') is-invalid @enderror"
-                                   autocomplete="current-password" required>
-                            <button type="button" class="btn btn-outline-secondary" @click="show = !show"
-                                    :aria-label="show ? 'Hide password' : 'Show password'">
-                                <i class="bi" :class="show ? 'bi-eye-slash' : 'bi-eye'"></i>
+                        <form method="POST" action="{{ route('login.store') }}" x-data="{ submitting: false }" @submit="submitting = true" novalidate>
+                            @csrf
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input id="email" type="email" name="email" value="{{ old('email') }}"
+                                       class="form-control form-control-lg @error('email') is-invalid @enderror"
+                                       autocomplete="username" required autofocus>
+                                @error('email')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3" x-data="{ show: false }">
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group has-validation">
+                                    <input id="password" :type="show ? 'text' : 'password'" type="password" name="password"
+                                           class="form-control form-control-lg @error('password') is-invalid @enderror"
+                                           autocomplete="current-password" required>
+                                    <button type="button" class="btn btn-light" @click="show = !show"
+                                            :aria-label="show ? 'Hide password' : 'Show password'">
+                                        <i class="bi" :class="show ? 'bi-eye-slash' : 'bi-eye'"></i>
+                                    </button>
+                                    @error('password')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" name="remember" id="remember" @checked(old('remember'))>
+                                <label class="form-check-label" for="remember">Keep me logged in</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning btn-lg w-100" :disabled="submitting">
+                                <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2"></span>
+                                Log in
                             </button>
-                            @error('password')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                        </form>
 
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember" @checked(old('remember'))>
-                        <label class="form-check-label" for="remember">Remember me</label>
+                        @if (config('fueltrack.show_demo_credentials'))
+                            <div class="rounded-4 bg-body-tertiary small mt-4 p-3">
+                                <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i> Demo accounts</div>
+                                Owner: <code>owner@alnoor.com</code><br>
+                                Staff: <code>staff@alnoor.com</code><br>
+                                Password: <code>Demo@12345</code>
+                            </div>
+                        @endif
                     </div>
-
-                    <button type="submit" class="btn btn-warning btn-lg w-100 fw-semibold" :disabled="submitting">
-                        <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2"></span>
-                        Login
-                    </button>
-                </form>
+                </div>
             </div>
         </div>
-
-        @if (config('fueltrack.show_demo_credentials'))
-            <div class="alert alert-light border-0 small mt-3 mb-0">
-                <div class="fw-semibold mb-1"><i class="bi bi-info-circle me-1"></i> Demo accounts</div>
-                Owner: <code>owner@alnoor.com</code><br>
-                Staff: <code>staff@alnoor.com</code><br>
-                Password: <code>Demo@12345</code>
-            </div>
-        @endif
     </div>
 </x-layouts.guest>

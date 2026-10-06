@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Route;
 
 /**
  * Single source of truth for the sidebar. Items whose route does not
- * exist yet render as disabled "Soon" entries, so modules can be added
- * one by one without touching the layout.
+ * exist render as disabled entries, so modules can be added one by one.
  */
 final class Navigation
 {
@@ -22,22 +21,20 @@ final class Navigation
             ['heading' => null, 'items' => [
                 self::item('Dashboard', 'speedometer2', 'dashboard'),
             ]],
-            ['heading' => 'Operations', 'items' => [
-                self::item('Meter Readings', 'fuel-pump', 'meter-readings.index'),
+            ['heading' => 'Daily operations', 'items' => [
+                self::item('Meter readings', 'fuel-pump', 'meter-readings.index'),
                 self::item('Sales', 'receipt', 'sales.index'),
                 self::item('Expenses', 'wallet2', 'expenses.index'),
-                self::item('Daily Closing', 'journal-check', 'closings.index'),
+                self::item('Daily closing', 'journal-check', 'closings.index'),
             ]],
-            ['heading' => 'Fuel', 'items' => [
-                self::item('Fuel Products', 'droplet-half', 'fuel-products.index'),
-                self::item('Pumps & Nozzles', 'diagram-3', 'pumps.index'),
+            ['heading' => 'Station', 'items' => [
+                self::item('Products & prices', 'droplet-half', 'fuel-products.index'),
+                self::item('Pumps & nozzles', 'diagram-3', 'pumps.index'),
                 self::item('Stock', 'bar-chart-steps', 'stock.index'),
                 self::item('Purchases', 'truck', 'purchases.index'),
             ]],
             ['heading' => 'Reports', 'items' => [
-                self::item('Daily Report', 'file-earmark-text', 'reports.daily'),
-            ]],
-            ['heading' => null, 'items' => [
+                self::item('Daily report', 'file-earmark-text', 'reports.daily'),
                 self::item('Settings', 'gear', 'settings.edit', roles: [UserRole::Owner]),
             ]],
         ];

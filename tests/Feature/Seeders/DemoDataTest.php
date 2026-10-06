@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\DailyClosing;
+use App\Models\FuelProduct;
 use App\Models\MeterReading;
 use App\Models\Nozzle;
 use App\Models\Sale;
@@ -21,10 +22,10 @@ test('demo data covers ten days with nine closed', function () {
 test('every reading has a matching sale', function () {
     $mismatched = Sale::query()
         ->join('meter_readings', 'meter_readings.id', '=', 'sales.meter_reading_id')
-        ->whereColumn('sales.liters', '!=', 'meter_readings.liters')
+        ->whereColumn('sales.quantity', '!=', 'meter_readings.liters')
         ->count();
 
-    expect(Sale::count())->toBe(MeterReading::count())
+    expect(Sale::query()->whereNotNull('meter_reading_id')->count())->toBe(MeterReading::count())
         ->and($mismatched)->toBe(0);
 });
 
@@ -35,6 +36,25 @@ test('the demo nozzle is ready for the scripted reading', function () {
         ->first();
 
     expect((float) $nozzle->current_meter)->toBe(125430.50);
+});
+
+test('past days have all three shifts and today has the morning shift', function () {
+    $shifts = fn ($date) => MeterReading::query()->whereDate('business_date', $date)->distinct()->pluck('shift')->map->value->sort()->values()->all();
+
+    expect($shifts(today()->subDay()))->toBe(['evening', 'morning', 'night'])
+        ->and($shifts(today()))->toBe(['morning']);
+});
+
+test('price history includes the petrol price change', function () {
+    $petrol = FuelProduct::firstWhere('code', 'petrol');
+
+    expect($petrol->prices()->count())->toBe(2)
+        ->and((float) $petrol->selling_price)->toBe(280.0)
+        ->and(Sale::query()->where('fuel_product_id', $petrol->id)->distinct()->pluck('rate')->map(fn ($r) => (float) $r)->sort()->values()->all())->toBe([275.0, 280.0]);
+});
+
+test('counter items are sold and purchased', function () {
+    expect(Sale::query()->whereNull('meter_reading_id')->count())->toBeGreaterThan(0);
 });
 
 test('stock never goes negative', function () {

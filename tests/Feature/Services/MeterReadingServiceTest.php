@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\Shift;
 use App\Models\FuelProduct;
 use App\Models\Nozzle;
 use App\Services\DailyClosingService;
@@ -17,7 +18,7 @@ beforeEach(function () {
 });
 
 test('it calculates liters and sales amount from the meters', function () {
-    $reading = $this->service->record($this->nozzle, today(), 125430.50, 126240.50);
+    $reading = $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 126240.50);
 
     expect((float) $reading->liters)->toBe(810.0)
         ->and((float) $reading->sale->rate)->toBe(280.0)
@@ -25,13 +26,13 @@ test('it calculates liters and sales amount from the meters', function () {
 });
 
 test('it advances the nozzle meter to the closing reading', function () {
-    $this->service->record($this->nozzle, today(), 125430.50, 126240.50);
+    $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 126240.50);
 
     expect((float) $this->nozzle->fresh()->current_meter)->toBe(126240.50);
 });
 
 test('the sale keeps its rate after the price changes', function () {
-    $reading = $this->service->record($this->nozzle, today(), 125430.50, 125530.50);
+    $reading = $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 125530.50);
 
     $this->nozzle->fuelProduct->update(['selling_price' => 300]);
 
@@ -39,15 +40,27 @@ test('the sale keeps its rate after the price changes', function () {
 });
 
 test('closing meter must be greater than opening meter', function () {
-    $this->service->record($this->nozzle, today(), 125430.50, 125430.50);
+    $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 125430.50);
 })->throws(ValidationException::class, 'Closing meter must be greater');
 
 test('opening meter must continue from the last closing reading', function () {
-    $this->service->record($this->nozzle, today(), 125000.00, 126000.00);
+    $this->service->record($this->nozzle, today(), Shift::Morning, 125000.00, 126000.00);
 })->throws(ValidationException::class, 'Opening meter must match');
+
+test('the shift is stored on the reading', function () {
+    $reading = $this->service->record($this->nozzle, today(), Shift::Night, 125430.50, 125500.50);
+
+    expect($reading->fresh()->shift)->toBe(Shift::Night);
+});
+
+test('inactive nozzles cannot take readings', function () {
+    $this->nozzle->update(['is_active' => false]);
+
+    $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 125500.50);
+})->throws(ValidationException::class, 'inactive');
 
 test('readings cannot be added to a closed day', function () {
     app(DailyClosingService::class)->close(today(), openingCash: 0, actualCash: 0);
 
-    $this->service->record($this->nozzle, today(), 125430.50, 126240.50);
+    $this->service->record($this->nozzle, today(), Shift::Morning, 125430.50, 126240.50);
 })->throws(ValidationException::class, 'already closed');
