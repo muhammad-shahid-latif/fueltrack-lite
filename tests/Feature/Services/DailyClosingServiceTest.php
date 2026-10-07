@@ -2,11 +2,15 @@
 
 use App\Enums\PaymentMethod;
 use App\Enums\Shift;
+use App\Models\Customer;
 use App\Models\Expense;
 use App\Models\FuelProduct;
 use App\Models\Nozzle;
+use App\Models\Supplier;
+use App\Services\CreditService;
 use App\Services\DailyClosingService;
 use App\Services\MeterReadingService;
+use App\Services\SupplierService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 
@@ -37,12 +41,14 @@ test('summary totals sales and separates cash expenses', function () {
 });
 
 test('closing reconciles cash and records the difference', function () {
+    // Credit comes from the debt register, not from the closing form.
+    app(CreditService::class)->recordCredit(Customer::create(['name' => 'Fleet']), null, null, 100000);
+
     $closing = $this->closings->close(
         date: today(),
         openingCash: 100000,
         actualCash: 718000,
         cardSales: 250000,
-        creditSales: 100000,
     );
 
     // 100,000 + (1,000,000 − 250,000 − 100,000) − 30,000 = 720,000
@@ -59,5 +65,24 @@ test('a day can only be closed once', function () {
 })->throws(ValidationException::class, 'already closed');
 
 test('card and credit sales cannot exceed total sales', function () {
-    $this->closings->close(today(), openingCash: 0, actualCash: 0, cardSales: 900000, creditSales: 200000);
+    app(CreditService::class)->recordCredit(Customer::create(['name' => 'Fleet']), null, null, 200000);
+
+    $this->closings->close(today(), openingCash: 0, actualCash: 0, cardSales: 900000);
 })->throws(ValidationException::class, 'cannot exceed total sales');
+
+test('cash from credit customers and cash paid to suppliers pass through the drawer', function () {
+    $customer = Customer::create(['name' => 'Fleet', 'opening_balance' => 50000]);
+    app(CreditService::class)->recordPayment($customer, 20000, PaymentMethod::Cash);
+    app(CreditService::class)->recordPayment($customer, 10000, PaymentMethod::Bank);
+
+    $supplier = Supplier::create(['name' => 'Depot', 'opening_balance' => 80000]);
+    app(SupplierService::class)->recordPayment($supplier, 15000, PaymentMethod::Cash);
+
+    $closing = $this->closings->close(today(), openingCash: 0, actualCash: 975000);
+
+    // 0 + 1,000,000 + 20,000 − 30,000 − 15,000 = 975,000
+    expect((float) $closing->customer_receipts)->toBe(20000.0)
+        ->and((float) $closing->supplier_payments)->toBe(15000.0)
+        ->and((float) $closing->expected_cash)->toBe(975000.0)
+        ->and($closing->hasCashDifference())->toBeFalse();
+});

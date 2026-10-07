@@ -49,7 +49,7 @@
                         </div>
 
                         <div class="row g-3 mb-3">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <label for="unit" class="form-label">Sold in</label>
                                 <select id="unit" name="unit" class="form-select @error('unit') is-invalid @enderror">
                                     @foreach ($units as $unit)
@@ -58,7 +58,18 @@
                                 </select>
                                 @error('unit') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
+                                <label for="cost_price" class="form-label">Cost price (Rs.)</label>
+                                <input type="text" inputmode="decimal" id="cost_price" name="cost_price"
+                                       value="{{ old('cost_price', $product->cost_price !== null ? \App\Support\Format::number($product->cost_price) : '') }}"
+                                       class="form-control ft-num @error('cost_price') is-invalid @enderror" placeholder="Purchase rate">
+                                @error('cost_price')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @else
+                                    <div class="form-text">Of the opening stock, for profit &amp; loss</div>
+                                @enderror
+                            </div>
+                            <div class="col-sm-4">
                                 <label for="low_stock_threshold" class="form-label">Reorder level</label>
                                 <input type="text" inputmode="decimal" id="low_stock_threshold" name="low_stock_threshold"
                                        value="{{ old('low_stock_threshold', \App\Support\Format::number($product->low_stock_threshold)) }}"
@@ -85,11 +96,11 @@
                             @csrf
                             @method('DELETE')
                             <button type="button" class="btn btn-sm btn-outline-danger" x-show="! sure" @click="sure = true">Delete product</button>
-                            <span x-show="sure" x-cloak class="d-flex flex-wrap align-items-center gap-2">
+                            <span x-show="sure" x-cloak><span class="d-flex flex-wrap align-items-center gap-2">
                                 <span class="small">Delete {{ $product->name }} permanently?</span>
                                 <button type="submit" class="btn btn-sm btn-danger">Yes, delete</button>
                                 <button type="button" class="btn btn-sm btn-light" @click="sure = false">Keep it</button>
-                            </span>
+                            </span></span>
                         </form>
                     @else
                         <p class="small text-secondary mt-4 pt-3 border-top mb-0">

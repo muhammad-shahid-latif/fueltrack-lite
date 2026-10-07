@@ -8,12 +8,21 @@
         </div>
 
         <div class="offcanvas-body d-flex flex-column p-3 w-100 h-100">
-            <a href="{{ route('dashboard') }}" class="app-brand d-flex align-items-center gap-2 text-decoration-none">
-                <span class="app-brand-mark"><i class="bi bi-fuel-pump-fill"></i></span>
-                <span style="min-width: 0;">
-                    <span class="app-brand-name d-block">FuelTrack</span>
-                    <span class="d-block small text-white-50 text-truncate" style="max-width: 175px;">{{ \App\Support\Station::name() }}</span>
-                </span>
+            @php($brand = \App\Support\Brand::current())
+            <a href="{{ route('dashboard') }}" class="app-brand text-decoration-none">
+                @if ($brand)
+                    <x-brand-logo size="lg" class="w-100 mb-3" />
+                    <span class="app-brand-name d-block">{{ \App\Support\Station::name() }}</span>
+                    <span class="d-block small text-white-50 text-truncate">{{ $brand->fullName }} · FuelTrack</span>
+                @else
+                    <span class="d-flex align-items-center gap-2">
+                        <span class="app-brand-mark"><i class="bi bi-fuel-pump-fill"></i></span>
+                        <span style="min-width: 0;">
+                            <span class="app-brand-name d-block">FuelTrack</span>
+                            <span class="d-block small text-white-50 text-truncate" style="max-width: 175px;">{{ \App\Support\Station::name() }}</span>
+                        </span>
+                    </span>
+                @endif
             </a>
 
             <nav class="app-nav" aria-label="Main">
@@ -27,8 +36,8 @@
                             <li class="nav-item">
                                 @if ($item['enabled'])
                                     <a href="{{ route($item['route']) }}"
-                                       @class(['nav-link', 'active' => request()->routeIs($item['active'])])
-                                       @if (request()->routeIs($item['active'])) aria-current="page" @endif>
+                                       @class(['nav-link', 'active' => request()->routeIs(...(array) $item['active'])])
+                                       @if (request()->routeIs(...(array) $item['active'])) aria-current="page" @endif>
                                         <i class="bi bi-{{ $item['icon'] }}"></i>
                                         <span>{{ $item['label'] }}</span>
                                     </a>

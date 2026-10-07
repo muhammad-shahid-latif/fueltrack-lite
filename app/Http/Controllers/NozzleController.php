@@ -14,6 +14,7 @@ class NozzleController extends Controller
         $nozzle = $pump->nozzles()->create([
             'number' => (int) $pump->nozzles()->max('number') + 1,
             'fuel_product_id' => $request->integer('fuel_product_id'),
+            'tank_id' => $request->integer('tank_id') ?: null,
             'current_meter' => $request->input('opening_meter'),
             'is_active' => true,
         ]);
@@ -27,6 +28,7 @@ class NozzleController extends Controller
 
         $nozzle->update([
             'fuel_product_id' => $request->integer('fuel_product_id'),
+            'tank_id' => $request->integer('tank_id') ?: null,
             'is_active' => $request->boolean('is_active'),
         ]);
 

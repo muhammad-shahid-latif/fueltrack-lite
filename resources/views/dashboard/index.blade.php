@@ -48,6 +48,99 @@
 
     <div class="row g-3 mb-4">
         <div class="col-xl-8">
+            <div class="card h-100">
+                <div class="card-header d-flex">
+                    <span class="d-flex align-items-center gap-2"><span class="live-dot"></span>Tanks live</span>
+                    <a href="{{ route('tanks.index') }}" class="small fw-normal text-decoration-none">All tanks <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        @forelse ($tanks as $row)
+                            <div class="col-6 col-md-3">
+                                <a href="{{ route('tanks.show', $row['tank']) }}" class="d-block text-center text-decoration-none text-reset">
+                                    <x-tank-3d :row="$row" mini class="pb-1" />
+                                    <div class="fw-semibold small text-truncate">{{ $row['tank']->name }}</div>
+                                    <div class="ft-num fw-bold">@liters($row['level'])</div>
+                                    <div class="small {{ $row['status'] === 'ok' ? 'text-secondary' : ($row['status'] === 'low' ? 'text-warning-emphasis' : 'text-danger') }}">
+                                        {{ round($row['percent']) }}% · {{ $row['days_cover'] !== null ? number_format($row['days_cover'], 1).' days' : '—' }}
+                                    </div>
+                                </a>
+                            </div>
+                        @empty
+                            <div class="col-12 text-secondary">No tanks set up yet.</div>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="card h-100">
+                <div class="card-header">Accounts</div>
+                <div class="list-group list-group-flush">
+                    <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 px-4 py-3">
+                        <span class="party-avatar is-customer"><i class="bi bi-person-vcard"></i></span>
+                        <span class="flex-grow-1"><span class="small text-secondary d-block">Customers owe us</span><span class="fw-bold ft-num fs-5">@money(round($receivable))</span></span>
+                        <i class="bi bi-chevron-right text-secondary"></i>
+                    </a>
+                    @if ($payables)
+                        <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 px-4 py-3">
+                            <span class="party-avatar is-supplier"><i class="bi bi-building"></i></span>
+                            <span class="flex-grow-1">
+                                <span class="small text-secondary d-block">We owe suppliers</span>
+                                <span class="fw-bold ft-num fs-5">@money(round($payables['balance']))</span>
+                                @if ($payables['overdue'] > 0)<span class="small text-danger d-block">@money(round($payables['overdue'])) overdue</span>@endif
+                            </span>
+                            <i class="bi bi-chevron-right text-secondary"></i>
+                        </a>
+                    @endif
+                    <a href="{{ route('nozzles.index') }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 px-4 py-3">
+                        <span class="party-avatar" style="--party: var(--ft-petrol);"><i class="bi bi-broadcast-pin"></i></span>
+                        <span class="flex-grow-1"><span class="small text-secondary d-block">Nozzles read today</span><span class="fw-bold ft-num fs-5">{{ $nozzlesToday->where('readings', '>', 0)->count() }} / {{ $nozzlesToday->count() }}</span></span>
+                        <i class="bi bi-chevron-right text-secondary"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if ($month)
+        @php($monthNet = $month['report']['net_profit'])
+        <div @class(['card stat-card mb-4', 'tile-sales' => $monthNet >= 0, 'tile-expense' => $monthNet < 0])>
+            <div class="card-body p-3 p-xl-4 d-flex flex-wrap align-items-center gap-3 gap-xl-5">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="stat-icon">
+                        <i class="bi bi-{{ $monthNet >= 0 ? 'graph-up-arrow' : 'graph-down-arrow' }}"></i>
+                    </span>
+                    <div>
+                        <div class="stat-label">{{ today()->format('F') }} so far: {{ $monthNet >= 0 ? 'net profit' : 'net loss' }}</div>
+                        <div @class(['stat-value', 'text-success' => $monthNet >= 0, 'text-danger' => $monthNet < 0])>{{ \App\Support\Format::money(round(abs($monthNet))) }}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="small text-secondary">Gross profit</div>
+                    <div class="fw-bold ft-num">@money(round($month['report']['gross_profit']))</div>
+                </div>
+                <div>
+                    <div class="small text-secondary">Expenses</div>
+                    <div class="fw-bold ft-num">@money(round($month['report']['total_operating']))</div>
+                </div>
+                <div>
+                    <div class="small text-secondary">Salaries paid</div>
+                    <div class="fw-bold ft-num">@money(round($month['report']['total_payroll']))</div>
+                </div>
+                @if ($month['pending_salaries'] > 0)
+                    <div>
+                        <div class="small text-secondary">Salaries to pay</div>
+                        <a href="{{ route('payroll.index') }}" class="fw-bold ft-num text-danger text-decoration-none">@money(round($month['pending_salaries']))</a>
+                    </div>
+                @endif
+                <a href="{{ route('reports.profit-loss') }}" class="btn btn-light ms-xl-auto"><i class="bi bi-graph-up me-1"></i> Profit &amp; loss</a>
+            </div>
+        </div>
+    @endif
+
+    <div class="row g-3 mb-4">
+        <div class="col-xl-8">
             @include('dashboard.partials.sales-chart', ['days' => $week])
         </div>
         <div class="col-xl-4">

@@ -62,7 +62,7 @@
                                  H{{ $point['x'] + $barWidth - $radius }}
                                  Q{{ $point['x'] + $barWidth }},{{ $padTop + $plotHeight - $point['h'] }} {{ $point['x'] + $barWidth }},{{ $padTop + $plotHeight - $point['h'] + $radius }}
                                  V{{ $padTop + $plotHeight }} Z"
-                              fill="{{ $point['isToday'] ? '#ffb21e' : '#1a8197' }}"
+                              style="fill: var({{ $point['isToday'] ? '--ft-amber' : '--ft-canopy-500' }})"
                               :fill-opacity="active === null || active === {{ $index }} ? 1 : 0.45" />
                     @endif
                     <text x="{{ $point['x'] + $barWidth / 2 }}" y="{{ $height - 10 }}" text-anchor="middle" font-size="12"

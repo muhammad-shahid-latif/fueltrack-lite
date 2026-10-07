@@ -38,24 +38,31 @@
                         </div>
 
                         <div class="row g-3 mb-4">
-                            <div class="col-sm-4">
+                            <div class="col-sm-6 col-lg-3">
                                 <label for="selling_price" class="form-label">Selling price (Rs.)</label>
                                 <input type="text" inputmode="decimal" id="selling_price" name="selling_price" value="{{ old('selling_price') }}"
                                        class="form-control ft-num @error('selling_price') is-invalid @enderror" required>
                                 @error('selling_price') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-6 col-lg-3">
+                                <label for="cost_price" class="form-label">Cost price (Rs.)</label>
+                                <input type="text" inputmode="decimal" id="cost_price" name="cost_price" value="{{ old('cost_price') }}"
+                                       class="form-control ft-num @error('cost_price') is-invalid @enderror" placeholder="Purchase rate">
+                                @error('cost_price') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="col-sm-6 col-lg-3">
                                 <label for="opening_stock" class="form-label">Stock now</label>
                                 <input type="text" inputmode="decimal" id="opening_stock" name="opening_stock" value="{{ old('opening_stock', 0) }}"
                                        class="form-control ft-num @error('opening_stock') is-invalid @enderror" required>
                                 @error('opening_stock') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
-                            <div class="col-sm-4">
+                            <div class="col-sm-6 col-lg-3">
                                 <label for="low_stock_threshold" class="form-label">Reorder level</label>
                                 <input type="text" inputmode="decimal" id="low_stock_threshold" name="low_stock_threshold" value="{{ old('low_stock_threshold', 0) }}"
                                        class="form-control ft-num @error('low_stock_threshold') is-invalid @enderror" required>
                                 @error('low_stock_threshold') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>
+                            <div class="col-12 form-text mt-1">Cost price is what one unit of the current stock cost you. It is used for profit and loss until purchases are recorded.</div>
                         </div>
 
                         <div class="d-flex gap-2 justify-content-end">

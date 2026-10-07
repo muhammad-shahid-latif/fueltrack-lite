@@ -7,7 +7,26 @@
                 by {{ $closing->closer?->name ?? '—' }} at {{ $closing->created_at->format('h:i A') }}
             </p>
         </div>
-        <a href="{{ route('closings.index') }}" class="btn btn-light">All closings</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('closings.index') }}" class="btn btn-light">All closings</a>
+            @if (auth()->user()->isOwner())
+                <a href="{{ route('closings.edit', $closing) }}" class="btn btn-outline-dark">
+                    <i class="bi bi-pencil me-1"></i> Edit cash count
+                </a>
+                <form method="POST" action="{{ route('closings.destroy', $closing) }}" x-data="{ sure: false }" class="d-flex">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" class="btn btn-outline-danger" x-show="! sure" @click="sure = true">
+                        <i class="bi bi-unlock me-1"></i> Reopen day
+                    </button>
+                    <span x-show="sure" x-cloak><span class="d-flex flex-wrap align-items-center gap-2 border border-danger-subtle rounded-3 px-2 py-1">
+                        <span class="small">Delete this closing and unlock the day?</span>
+                        <button type="submit" class="btn btn-sm btn-danger">Yes, reopen</button>
+                        <button type="button" class="btn btn-sm btn-light" @click="sure = false">Keep closed</button>
+                    </span></span>
+                </form>
+            @endif
+        </div>
     </div>
 
     @if ($closing->hasCashDifference())
@@ -52,7 +71,13 @@
                     <table class="table mb-0">
                         <tr><td class="text-secondary">Opening cash</td><td class="text-end">@money($closing->opening_cash)</td></tr>
                         <tr><td class="text-secondary">+ Cash sales</td><td class="text-end">@money($closing->cash_sales)</td></tr>
+                        @if ((float) $closing->customer_receipts > 0)
+                            <tr><td class="text-secondary">+ Received from credit customers</td><td class="text-end">@money($closing->customer_receipts)</td></tr>
+                        @endif
                         <tr><td class="text-secondary">− Cash expenses</td><td class="text-end">@money(-$closing->cash_expenses)</td></tr>
+                        @if ((float) $closing->supplier_payments > 0)
+                            <tr><td class="text-secondary">− Cash paid to suppliers</td><td class="text-end">@money(-$closing->supplier_payments)</td></tr>
+                        @endif
                         <tr class="fw-bold"><td>Expected cash</td><td class="text-end">@money($closing->expected_cash)</td></tr>
                         <tr class="fw-bold"><td>Actual cash</td><td class="text-end">@money($closing->actual_cash)</td></tr>
                         <tr @class(['fw-bold', 'table-danger' => $closing->hasCashDifference(), 'table-success' => ! $closing->hasCashDifference()])>

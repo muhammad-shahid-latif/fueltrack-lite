@@ -1,4 +1,6 @@
 @php
+    $brand = \App\Support\Brand::current();
+    $stripe = $brand?->stripe ?? ['#12a66a', '#2f6fe4', '#e0294f', '#ffb21e'];
     $boardPrices = \App\Models\FuelProduct::query()->fuel()->active()->orderBy('id')->limit(3)->get(['name', 'selling_price']);
 @endphp
 <svg viewBox="0 0 520 380" width="100%" style="max-width: 520px;" role="img" aria-label="Fuel dispenser showing current prices">
@@ -12,12 +14,12 @@
             <stop offset="1" stop-color="#6f8e98"/>
         </linearGradient>
         <linearGradient id="dsTop" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#ffd36b"/>
-            <stop offset="1" stop-color="#e58e00"/>
+            <stop offset="0" style="stop-color: var(--ft-amber-soft)"/>
+            <stop offset="1" style="stop-color: var(--ft-amber-deep)"/>
         </linearGradient>
         <linearGradient id="dsScreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#062a33"/>
-            <stop offset="1" stop-color="#031b21"/>
+            <stop offset="0" style="stop-color: var(--ft-canopy-800)"/>
+            <stop offset="1" style="stop-color: var(--ft-canopy-900)"/>
         </linearGradient>
         <linearGradient id="dsHose" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stop-color="#1b2b30"/>
@@ -48,15 +50,19 @@
     <rect x="100" y="70" width="200" height="252" rx="14" fill="none" stroke="#ffffff" stroke-opacity="0.8"/>
 
     {{-- canopy cap --}}
-    <path d="M92 52 L308 52 L358 30 L142 30 Z" fill="#ffc84d"/>
+    <path d="M92 52 L308 52 L358 30 L142 30 Z" style="fill: var(--ft-amber-soft)"/>
     <rect x="92" y="52" width="216" height="26" rx="8" fill="url(#dsTop)"/>
-    <text x="200" y="70" text-anchor="middle" font-family="Chakra Petch, sans-serif" font-weight="700" font-size="14" fill="#05303b">FUELTRACK</text>
+    <text x="200" y="70" text-anchor="middle" font-family="Chakra Petch, sans-serif" font-weight="700" font-size="14" style="fill: var(--ft-on-accent)">{{ strtoupper($brand?->name ?? 'FuelTrack') }}</text>
+    {{-- network colour band under the cap --}}
+    @foreach ($stripe as $i => $color)
+        <rect x="{{ 100 + $i * (200 / count($stripe)) }}" y="78" width="{{ 200 / count($stripe) }}" height="6" fill="{{ $color }}"/>
+    @endforeach
 
     {{-- price screen --}}
     <rect x="118" y="94" width="164" height="{{ 22 + 30 * max($boardPrices->count(), 1) }}" rx="10" fill="url(#dsScreen)"/>
     @foreach ($boardPrices as $i => $price)
-        <text x="132" y="{{ 120 + $i * 30 }}" font-family="Figtree, sans-serif" font-size="12" fill="#9fc4cc">{{ $price->name }}</text>
-        <text x="268" y="{{ 121 + $i * 30 }}" text-anchor="end" font-family="Chakra Petch, sans-serif" font-weight="700" font-size="20" fill="#ffb21e" filter="url(#dsGlow)">{{ rtrim(rtrim(number_format((float) $price->selling_price, 2), '0'), '.') }}</text>
+        <text x="132" y="{{ 120 + $i * 30 }}" font-family="Figtree, sans-serif" font-size="12" fill="#ffffff" fill-opacity="0.7">{{ $price->name }}</text>
+        <text x="268" y="{{ 121 + $i * 30 }}" text-anchor="end" font-family="Chakra Petch, sans-serif" font-weight="700" font-size="20" style="fill: var(--ft-led)" filter="url(#dsGlow)">{{ rtrim(rtrim(number_format((float) $price->selling_price, 2), '0'), '.') }}</text>
     @endforeach
 
     {{-- grade buttons --}}

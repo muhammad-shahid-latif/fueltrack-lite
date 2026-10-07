@@ -1,4 +1,6 @@
 <x-layouts.app title="Sales" subtitle="Fuel from meter readings and items sold at the counter">
+    @php($isOwner = auth()->user()->isOwner())
+
     <div class="d-flex flex-wrap justify-content-end gap-2 mb-3">
         <a href="{{ route('sales.create') }}" class="btn btn-warning"><i class="bi bi-bag-plus me-1"></i> Counter sale</a>
     </div>
@@ -69,6 +71,9 @@
                         <th class="text-end">Quantity</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
+                        @if ($isOwner)
+                            <th class="text-end"><span class="visually-hidden">Actions</span></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -83,6 +88,9 @@
                             <td class="text-nowrap">
                                 @if ($sale->isCounterSale())
                                     <span class="badge text-bg-light border"><i class="bi bi-basket me-1"></i>Counter</span>
+                                    @if ($sale->customer)
+                                        <a href="{{ route('customers.show', $sale->customer) }}" class="badge text-bg-warning text-decoration-none"><i class="bi bi-journal-bookmark me-1"></i>Credit · {{ $sale->customer->name }}</a>
+                                    @endif
                                 @else
                                     <span class="small">{{ $sale->meterReading->nozzle->label() }}</span>
                                 @endif
@@ -90,10 +98,28 @@
                             <td class="text-end ft-num">@qty($sale->quantity, $sale->fuelProduct->unit)</td>
                             <td class="text-end ft-num">@money($sale->rate)</td>
                             <td class="text-end ft-num fw-bold">@money($sale->amount)</td>
+                            @if ($isOwner)
+                                @php($closing = $closings->get($sale->business_date->toDateString()))
+                                <td class="text-end text-nowrap">
+                                    @if ($closing)
+                                        <a href="{{ route('closings.show', $closing) }}" class="btn btn-sm btn-light" title="Day closed. Reopen it to edit.">
+                                            <i class="bi bi-lock-fill"></i><span class="visually-hidden">Day closed</span>
+                                        </a>
+                                    @elseif ($sale->isCounterSale())
+                                        <a href="{{ route('sales.edit', $sale) }}" class="btn btn-sm btn-outline-dark">
+                                            <i class="bi bi-pencil me-1"></i>Edit
+                                        </a>
+                                    @else
+                                        <a href="{{ route('meter-readings.edit', $sale->meter_reading_id) }}" class="btn btn-sm btn-outline-secondary" title="Fuel sales are corrected through their meter reading">
+                                            <i class="bi bi-speedometer2 me-1"></i>Reading
+                                        </a>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="empty-state">
+                            <td colspan="{{ $isOwner ? 7 : 6 }}" class="empty-state">
                                 <i class="bi bi-receipt"></i>
                                 No sales match these filters.
                             </td>

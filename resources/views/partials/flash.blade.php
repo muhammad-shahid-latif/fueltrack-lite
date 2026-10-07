@@ -8,8 +8,8 @@
     @endif
 @endforeach
 
-{{-- Errors that are not tied to a visible field: a locked day or a wrong system clock. --}}
-@foreach (['clock' => 'clock-history', 'business_date' => 'lock-fill'] as $field => $icon)
+{{-- Errors that are not tied to a visible field: a locked day, a wrong system clock or a blocked change. --}}
+@foreach (['clock' => 'clock-history', 'business_date' => 'lock-fill', 'record' => 'exclamation-octagon-fill'] as $field => $icon)
     @error($field)
         <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
             <i class="bi bi-{{ $icon }}"></i>

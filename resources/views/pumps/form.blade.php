@@ -45,11 +45,11 @@
                                     @csrf
                                     @method('DELETE')
                                     <button type="button" class="btn btn-sm btn-outline-danger" x-show="! sure" @click="sure = true">Remove pump</button>
-                                    <span x-show="sure" x-cloak class="d-flex flex-wrap align-items-center gap-2">
+                                    <span x-show="sure" x-cloak><span class="d-flex flex-wrap align-items-center gap-2">
                                         <span class="small">Remove {{ $pump->name }} and its nozzles?</span>
                                         <button type="submit" class="btn btn-sm btn-danger">Yes, remove</button>
                                         <button type="button" class="btn btn-sm btn-light" @click="sure = false">Keep it</button>
-                                    </span>
+                                    </span></span>
                                 </form>
                             @endif
                         </div>
@@ -80,6 +80,16 @@
                                     @endforeach
                                 </select>
                                 <div class="small text-secondary mt-1">Meter <span class="ft-num">@meter($nozzle->current_meter)</span>, {{ $nozzle->meter_readings_count }} {{ str('reading')->plural($nozzle->meter_readings_count) }}</div>
+                            </div>
+                            <div style="min-width: 150px;">
+                                <label class="visually-hidden" for="tank_{{ $nozzle->id }}">Tank for nozzle {{ $nozzle->number }}</label>
+                                <select id="tank_{{ $nozzle->id }}" name="tank_id" class="form-select form-select-sm">
+                                    <option value="">No tank linked</option>
+                                    @foreach ($tanks as $tank)
+                                        <option value="{{ $tank->id }}" @selected($nozzle->tank_id === $tank->id)>{{ $tank->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="small text-secondary mt-1"><i class="bi bi-database me-1"></i>draws from</div>
                             </div>
                             <div class="form-check form-switch mb-0">
                                 <input type="hidden" name="is_active" value="0">
@@ -112,7 +122,7 @@
                         @else
                             <form method="POST" action="{{ route('pumps.nozzles.store', $pump) }}" class="row g-3 align-items-end" novalidate>
                                 @csrf
-                                <div class="col-sm-5">
+                                <div class="col-sm-4">
                                     <label for="new_fuel" class="form-label">Fuel</label>
                                     <select id="new_fuel" name="fuel_product_id" class="form-select @error('fuel_product_id') is-invalid @enderror">
                                         @foreach ($fuels as $fuel)
@@ -121,14 +131,24 @@
                                     </select>
                                     @error('fuel_product_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="col-sm-4">
+                                <div class="col-sm-3">
+                                    <label for="new_tank" class="form-label">Tank</label>
+                                    <select id="new_tank" name="tank_id" class="form-select @error('tank_id') is-invalid @enderror">
+                                        <option value="">None</option>
+                                        @foreach ($tanks as $tank)
+                                            <option value="{{ $tank->id }}" @selected(old('tank_id') == $tank->id)>{{ $tank->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('tank_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-sm-3">
                                     <label for="opening_meter" class="form-label">Meter reading now</label>
                                     <input type="text" inputmode="decimal" id="opening_meter" name="opening_meter" value="{{ old('opening_meter') }}"
                                            class="form-control ft-num @error('opening_meter') is-invalid @enderror" placeholder="0.00" required>
                                     @error('opening_meter') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>
-                                <div class="col-sm-3">
-                                    <button type="submit" class="btn btn-warning w-100">Add nozzle</button>
+                                <div class="col-sm-2">
+                                    <button type="submit" class="btn btn-warning w-100">Add</button>
                                 </div>
                                 <div class="col-12 form-text mt-1">
                                     Replacing a faulty meter? Mark the old nozzle inactive and add a new one with the new meter's reading.

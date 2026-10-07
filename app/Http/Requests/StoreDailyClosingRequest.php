@@ -22,7 +22,6 @@ class StoreDailyClosingRequest extends FormRequest
             'business_date' => ['required', 'date', 'before_or_equal:today'],
             'opening_cash' => $money,
             'card_sales' => $money,
-            'credit_sales' => $money,
             'actual_cash' => $money,
             'notes' => ['nullable', 'string', 'max:500'],
         ];

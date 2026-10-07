@@ -34,6 +34,7 @@ class StoreFuelProductRequest extends FormRequest
             'selling_price' => ['required', 'numeric', 'gt:0', 'max:1000000'],
             'opening_stock' => ['required', 'numeric', 'min:0', 'max:10000000'],
             'low_stock_threshold' => ['required', 'numeric', 'min:0', 'max:10000000'],
+            'cost_price' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
         ];
     }
 

@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaymentMethod;
 use App\Enums\ProductType;
 use App\Http\Requests\StoreFuelPurchaseRequest;
 use App\Models\FuelProduct;
 use App\Models\FuelPurchase;
+use App\Models\Supplier;
+use App\Models\Tank;
 use App\Services\FuelStockService;
+use App\Services\TankService;
 use App\Support\BusinessClock;
 use App\Support\Format;
 use Illuminate\Database\Eloquent\Builder;
@@ -33,7 +37,7 @@ class FuelPurchaseController extends Controller
         return view('purchases.index', [
             'purchases' => FuelPurchase::query()
                 ->tap($scope)
-                ->with(['fuelProduct', 'recorder'])
+                ->with(['fuelProduct', 'recorder', 'tank', 'supplier'])
                 ->orderByDesc('business_date')
                 ->orderByDesc('id')
                 ->paginate(25)
@@ -50,15 +54,38 @@ class FuelPurchaseController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request, FuelStockService $stock, TankService $tanks): View
     {
+        $today = BusinessClock::today();
+
+        $products = FuelProduct::query()
+            ->active()
+            ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::Fuel->value])
+            ->orderBy('name')
+            ->get();
+
+        $stockById = $stock->summary($today)->keyBy(fn (array $row) => $row['product']->id);
+
         return view('purchases.create', [
-            'products' => FuelProduct::query()
-                ->active()
-                ->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::Fuel->value])
-                ->orderBy('name')
-                ->get(),
-            'businessDate' => BusinessClock::today(),
+            'products' => $products,
+            // Live figures for the weighted-average preview on the form.
+            'productData' => $products->mapWithKeys(fn (FuelProduct $product) => [$product->id => [
+                'unit' => $product->unit->value,
+                'stock' => (float) ($stockById->get($product->id)['closing'] ?? 0),
+                'average' => $product->currentAverageCost($today),
+            ]]),
+            'tanks' => $tanks->levels($today, activeOnly: true)->map(fn (array $row) => [
+                'id' => $row['tank']->id,
+                'name' => $row['tank']->name,
+                'product' => $row['tank']->fuel_product_id,
+                'level' => $row['level'],
+                'ullage' => $row['ullage'],
+                'percent' => $row['percent'],
+            ])->values(),
+            'suppliers' => Supplier::query()->active()->orderBy('name')->get(['id', 'name', 'payment_terms_days']),
+            'paymentMethods' => PaymentMethod::cases(),
+            'selectedTankId' => $request->integer('tank') ?: null,
+            'businessDate' => $today,
         ]);
     }
 
@@ -75,15 +102,22 @@ class FuelPurchaseController extends Controller
             invoiceNumber: $request->input('invoice_number'),
             recordedBy: $request->user(),
             notes: $request->input('notes'),
+            tank: $request->filled('tank_id') ? Tank::findOrFail($request->integer('tank_id')) : null,
+            supplier: $request->filled('supplier_id') ? Supplier::findOrFail($request->integer('supplier_id')) : null,
+            dueDate: $request->input('due_date'),
+            paidNow: (float) $request->input('paid_now', 0),
+            paymentMethod: $request->enum('payment_method', PaymentMethod::class) ?? PaymentMethod::Cash,
         );
 
         return redirect()
             ->route('purchases.index')
             ->with('success', sprintf(
-                'Purchase saved: %s of %s for %s. Stock updated.',
+                'Purchase saved: %s of %s for %s. Stock updated; average cost now %s per %s.',
                 Format::quantity($purchase->quantity, $product->unit),
                 $product->name,
                 Format::money($purchase->amount),
+                Format::money(round((float) $purchase->average_cost, 2)),
+                $product->unit->value,
             ));
     }
 }

@@ -4,12 +4,15 @@ namespace App\Models;
 
 use App\Enums\ProductType;
 use App\Enums\ProductUnit;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\FuelProductFactory;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 /**
  * A sellable product. Despite the historical table name this covers fuel
@@ -18,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class FuelProduct extends Model
 {
     /** @use HasFactory<FuelProductFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * @var list<string>
@@ -29,6 +32,7 @@ class FuelProduct extends Model
         'type',
         'unit',
         'selling_price',
+        'cost_price',
         'opening_stock',
         'low_stock_threshold',
         'is_active',
@@ -43,6 +47,7 @@ class FuelProduct extends Model
             'type' => ProductType::class,
             'unit' => ProductUnit::class,
             'selling_price' => 'decimal:2',
+            'cost_price' => 'decimal:2',
             'opening_stock' => 'decimal:2',
             'low_stock_threshold' => 'decimal:2',
             'is_active' => 'boolean',
@@ -71,6 +76,35 @@ class FuelProduct extends Model
     public function purchases(): HasMany
     {
         return $this->hasMany(FuelPurchase::class);
+    }
+
+    /**
+     * @return HasMany<Tank, $this>
+     */
+    public function tanks(): HasMany
+    {
+        return $this->hasMany(Tank::class);
+    }
+
+    /**
+     * Moving weighted average cost per unit after the latest delivery,
+     * falling back to the opening cost price.
+     */
+    public function currentAverageCost(DateTimeInterface|string|null $asOf = null): ?float
+    {
+        $latest = $this->purchases()
+            ->whereNotNull('average_cost')
+            ->when($asOf, fn (Builder $query) => $query->whereDate('business_date', '<=', Carbon::parse($asOf)))
+            ->reorder()
+            ->orderByDesc('business_date')
+            ->orderByDesc('id')
+            ->value('average_cost');
+
+        if ($latest !== null) {
+            return round((float) $latest, 4);
+        }
+
+        return $this->cost_price !== null ? (float) $this->cost_price : null;
     }
 
     /**
@@ -116,5 +150,10 @@ class FuelProduct extends Model
     public function scopeCounterItems(Builder $query): void
     {
         $query->where('type', '!=', ProductType::Fuel->value);
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Product '.$this->name;
     }
 }

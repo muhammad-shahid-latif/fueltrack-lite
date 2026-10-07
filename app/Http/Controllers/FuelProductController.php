@@ -52,6 +52,7 @@ class FuelProductController extends Controller
                 'type' => $request->enum('type', ProductType::class),
                 'unit' => $request->enum('unit', ProductUnit::class),
                 'selling_price' => $request->input('selling_price'),
+                'cost_price' => $request->filled('cost_price') ? $request->input('cost_price') : null,
                 'opening_stock' => $request->input('opening_stock'),
                 'low_stock_threshold' => $request->input('low_stock_threshold'),
             ]);
@@ -83,6 +84,7 @@ class FuelProductController extends Controller
             'name' => $request->string('name')->trim()->toString(),
             'unit' => $request->enum('unit', ProductUnit::class),
             'low_stock_threshold' => $request->input('low_stock_threshold'),
+            'cost_price' => $request->filled('cost_price') ? $request->input('cost_price') : null,
             'is_active' => $request->boolean('is_active'),
         ]);
 

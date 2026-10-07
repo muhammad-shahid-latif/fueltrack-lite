@@ -1,6 +1,6 @@
 @props(['products'])
 
-<section class="price-board" aria-label="Current fuel prices">
+<section class="price-board" aria-label="Current fuel prices" data-tilt="1.5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="price-board-title"><i class="bi bi-broadcast me-2"></i>Today's fuel prices</div>
         @if (auth()->user()->isOwner())

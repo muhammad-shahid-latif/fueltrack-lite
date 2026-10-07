@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\PumpFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Pump extends Model
 {
     /** @use HasFactory<PumpFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * @var list<string>
@@ -36,5 +37,10 @@ class Pump extends Model
     public function nozzles(): HasMany
     {
         return $this->hasMany(Nozzle::class)->orderBy('number');
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Pump '.$this->name;
     }
 }

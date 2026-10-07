@@ -6,12 +6,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="theme-color" content="#05303b">
-    <title>{{ $title ? $title.' · ' : '' }}{{ config('app.name') }}</title>
+    <title>{{ $title ? $title.' · ' : '' }}{{ \App\Support\Brand::current()?->name ? \App\Support\Brand::current()->name.' · ' : '' }}{{ config('app.name') }}</title>
     @include('partials.fonts')
+    @include('partials.brand-theme')
     @vite('resources/js/app.js')
 </head>
 <body>
+    <div class="brand-stripe d-print-none" aria-hidden="true"></div>
     <div class="d-lg-flex min-vh-100">
         @include('partials.sidebar')
 
@@ -23,6 +24,9 @@
                             aria-controls="appSidebar" aria-label="Open menu">
                         <i class="bi bi-list fs-5"></i>
                     </button>
+
+                    @php($currentPage = \App\Support\Navigation::current(auth()->user()))
+                    <span class="page-cube d-none d-sm-grid" aria-hidden="true"><i class="bi bi-{{ $currentPage['icon'] ?? 'fuel-pump-fill' }}"></i></span>
 
                     <div style="min-width: 0;">
                         <h1 class="mb-0 text-truncate">{{ $title }}</h1>
@@ -43,6 +47,13 @@
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2">
                             <li class="dropdown-item-text small text-secondary">{{ auth()->user()->email }}</li>
                             <li><hr class="dropdown-divider"></li>
+                            @unless (\App\Support\Brand::locked())
+                                <li>
+                                    <a href="{{ route('brands.index') }}" class="dropdown-item rounded-3">
+                                        <i class="bi bi-palette2 me-2"></i>Change fuel network
+                                    </a>
+                                </li>
+                            @endunless
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
@@ -56,14 +67,14 @@
                 </div>
             </header>
 
-            <main class="flex-grow-1 p-3 p-lg-4">
+            <main class="flex-grow-1 p-3 p-lg-4 app-main">
                 @include('partials.flash')
 
                 {{ $slot }}
             </main>
 
             <footer class="px-3 px-lg-4 py-3 small text-secondary d-print-none">
-                {{ config('app.name') }} for {{ \App\Support\Station::name() }}
+                {{ config('app.name') }} for {{ \App\Support\Station::name() }}@if (\App\Support\Brand::current()) · {{ \App\Support\Brand::current()->fullName }} dealer @endif
             </footer>
         </div>
     </div>

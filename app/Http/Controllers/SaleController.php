@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Enums\ProductType;
 use App\Http\Requests\StoreCounterSaleRequest;
+use App\Http\Requests\UpdateCounterSaleRequest;
+use App\Models\Customer;
+use App\Models\DailyClosing;
 use App\Models\FuelProduct;
 use App\Models\Sale;
+use App\Services\DailyClosingService;
 use App\Services\FuelStockService;
 use App\Services\SaleService;
 use App\Support\BusinessClock;
@@ -13,6 +17,8 @@ use App\Support\Format;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class SaleController extends Controller
@@ -48,14 +54,17 @@ class SaleController extends Controller
             ->toBase()
             ->first();
 
+        $sales = Sale::query()
+            ->tap($scope)
+            ->with(['fuelProduct', 'meterReading.nozzle.pump', 'recorder', 'customer'])
+            ->orderByDesc('business_date')
+            ->orderByDesc('id')
+            ->paginate(30)
+            ->withQueryString();
+
         return view('sales.index', [
-            'sales' => Sale::query()
-                ->tap($scope)
-                ->with(['fuelProduct', 'meterReading.nozzle.pump', 'recorder'])
-                ->orderByDesc('business_date')
-                ->orderByDesc('id')
-                ->paginate(30)
-                ->withQueryString(),
+            'sales' => $sales,
+            'closings' => $this->closingsFor($sales->getCollection()->pluck('business_date')),
             'totals' => $totals,
             'products' => FuelProduct::query()->orderByRaw('CASE WHEN type = ? THEN 0 ELSE 1 END', [ProductType::Fuel->value])->orderBy('name')->get(),
             'filters' => [
@@ -83,6 +92,7 @@ class SaleController extends Controller
                 'rate' => (float) $item->selling_price,
                 'stock' => (float) ($stockById->get($item->id)['closing'] ?? 0),
             ])->values(),
+            'customers' => Customer::query()->active()->orderBy('name')->get(['id', 'name', 'vehicle_number', 'credit_limit']),
             'businessDate' => BusinessClock::today(),
         ]);
     }
@@ -95,15 +105,93 @@ class SaleController extends Controller
             quantity: (float) $request->input('quantity'),
             recordedBy: $request->user(),
             notes: $request->input('notes'),
+            customer: $request->filled('customer_id') ? Customer::findOrFail($request->integer('customer_id')) : null,
+            vehicleNumber: $request->filled('vehicle_number') ? mb_strtoupper($request->string('vehicle_number')->trim()->toString()) : null,
+        );
+
+        $sale->loadMissing(['fuelProduct', 'customer']);
+
+        return redirect()
+            ->route('sales.index', ['source' => 'counter'])
+            ->with('success', sprintf(
+                'Counter sale saved: %s × %s = %s%s',
+                Format::quantity($sale->quantity, $sale->fuelProduct->unit),
+                Format::money($sale->rate),
+                Format::money($sale->amount),
+                $sale->customer_id ? ' on credit to '.$sale->customer->name : '',
+            ));
+    }
+
+    public function edit(Sale $sale, DailyClosingService $closings, FuelStockService $stock): View|RedirectResponse
+    {
+        if (! $sale->isCounterSale()) {
+            return redirect()->route('meter-readings.edit', $sale->meter_reading_id);
+        }
+
+        if ($closings->isClosed($sale->business_date)) {
+            return redirect()
+                ->route('sales.index', ['from' => $sale->business_date->toDateString(), 'to' => $sale->business_date->toDateString()])
+                ->with('warning', sprintf('%s is closed. Reopen it from Daily closing to make changes.', $sale->business_date->format('d M Y')));
+        }
+
+        $sale->load(['fuelProduct', 'recorder']);
+
+        return view('sales.edit', [
+            'sale' => $sale,
+            // Stock left on that day, plus what this sale already took.
+            'available' => $stock->currentStock($sale->fuelProduct, $sale->business_date) + (float) $sale->quantity,
+        ]);
+    }
+
+    public function update(UpdateCounterSaleRequest $request, Sale $sale, SaleService $sales): RedirectResponse
+    {
+        $sale = $sales->updateCounterSale(
+            sale: $sale,
+            quantity: (float) $request->input('quantity'),
+            rate: (float) $request->input('rate'),
+            notes: $request->input('notes'),
         );
 
         return redirect()
             ->route('sales.index', ['source' => 'counter'])
             ->with('success', sprintf(
-                'Counter sale saved: %s × %s = %s',
+                'Counter sale updated: %s × %s = %s',
                 Format::quantity($sale->quantity, $sale->fuelProduct->unit),
                 Format::money($sale->rate),
                 Format::money($sale->amount),
             ));
+    }
+
+    public function destroy(Sale $sale, SaleService $sales): RedirectResponse
+    {
+        $sale->load('fuelProduct');
+        $sales->deleteCounterSale($sale);
+
+        return redirect()
+            ->route('sales.index', ['source' => 'counter'])
+            ->with('success', sprintf(
+                'Counter sale deleted. %s returned to %s stock.',
+                Format::quantity($sale->quantity, $sale->fuelProduct->unit),
+                $sale->fuelProduct->name,
+            ));
+    }
+
+    /**
+     * Closings for the listed days, keyed by date, to show which rows are locked.
+     *
+     * @param  Collection<int, Carbon>  $dates
+     * @return Collection<string, DailyClosing>
+     */
+    private function closingsFor(Collection $dates): Collection
+    {
+        if ($dates->isEmpty()) {
+            return collect();
+        }
+
+        return DailyClosing::query()
+            ->whereDate('business_date', '>=', $dates->min())
+            ->whereDate('business_date', '<=', $dates->max())
+            ->get()
+            ->keyBy(fn (DailyClosing $closing) => $closing->business_date->toDateString());
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SavePumpRequest;
 use App\Models\FuelProduct;
 use App\Models\Pump;
+use App\Models\Tank;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -14,7 +15,7 @@ class PumpController extends Controller
     {
         return view('pumps.index', [
             'pumps' => Pump::query()
-                ->with(['nozzles' => fn ($query) => $query->with('fuelProduct')->withCount('meterReadings')])
+                ->with(['nozzles' => fn ($query) => $query->with(['fuelProduct', 'tank'])->withCount('meterReadings')])
                 ->orderBy('name')
                 ->get(),
         ]);
@@ -25,6 +26,7 @@ class PumpController extends Controller
         return view('pumps.form', [
             'pump' => new Pump(['name' => $this->suggestedName(), 'is_active' => true]),
             'fuels' => collect(),
+            'tanks' => collect(),
         ]);
     }
 
@@ -42,11 +44,12 @@ class PumpController extends Controller
 
     public function edit(Pump $pump): View
     {
-        $pump->load(['nozzles' => fn ($query) => $query->with('fuelProduct')->withCount('meterReadings')]);
+        $pump->load(['nozzles' => fn ($query) => $query->with(['fuelProduct', 'tank'])->withCount('meterReadings')]);
 
         return view('pumps.form', [
             'pump' => $pump,
             'fuels' => FuelProduct::query()->fuel()->active()->orderBy('id')->get(),
+            'tanks' => Tank::query()->active()->orderBy('name')->get(['id', 'name', 'fuel_product_id']),
         ]);
     }
 

@@ -27,6 +27,8 @@ class StoreCounterSaleRequest extends FormRequest
                     ->whereNot('type', ProductType::Fuel->value),
             ],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:100000'],
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('is_active', true)],
+            'vehicle_number' => ['nullable', 'string', 'max:30'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];
     }
@@ -36,6 +38,6 @@ class StoreCounterSaleRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['fuel_product_id' => 'product'];
+        return ['fuel_product_id' => 'product', 'customer_id' => 'customer'];
     }
 }

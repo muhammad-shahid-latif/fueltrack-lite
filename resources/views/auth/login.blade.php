@@ -1,26 +1,32 @@
+@php($brand = \App\Support\Brand::current())
+
 <x-layouts.guest title="Log in">
+    <div class="auth-stripe" aria-hidden="true"></div>
     <div class="container-xxl min-vh-100 d-flex align-items-center py-4">
         <div class="row w-100 g-5 align-items-center justify-content-center mx-0">
             <div class="col-lg-6 d-none d-lg-block text-white">
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <span class="app-brand-mark"><i class="bi bi-fuel-pump-fill"></i></span>
-                    <span class="app-brand-name fs-4">FuelTrack</span>
-                </div>
-                <h1 class="display-5 fw-bold mb-3" style="max-width: 15ch;">Every liter, every rupee, every shift.</h1>
-                <p class="fs-5 text-white-50 mb-5" style="max-width: 44ch;">
-                    Meter readings, stock, expenses and the daily cash count for {{ \App\Support\Station::name() }}, in one place.
-                </p>
+                <x-brand-logo size="xl" class="mb-4 auth-logo-float" />
 
-                <div class="auth-art" aria-hidden="true">
+                <h1 class="auth-headline mb-3">Every liter, every rupee, every shift.</h1>
+                <p class="fs-5 text-white-50 mb-4" style="max-width: 44ch;">
+                    Meter readings, stock, staff salaries and the daily cash count for {{ \App\Support\Station::name() }}, in one place.
+                </p>
+                @if ($brand)
+                    <span class="auth-network-chip"><i class="bi bi-patch-check-fill"></i> {{ $brand->fullName }} dealer</span>
+                @endif
+
+                <div class="auth-art mt-4" aria-hidden="true">
                     @include('auth.partials.dispenser-art')
                 </div>
             </div>
 
             <div class="col-lg-5 col-xl-4">
                 <div class="text-center text-white mb-4 d-lg-none">
-                    <span class="app-brand-mark mx-auto mb-3" style="width: 56px; height: 56px;"><i class="bi bi-fuel-pump-fill fs-4"></i></span>
-                    <div class="app-brand-name fs-3">FuelTrack</div>
-                    <div class="text-white-50">{{ \App\Support\Station::name() }}</div>
+                    <x-brand-logo size="lg" class="mx-auto mb-3 auth-logo-float" />
+                    <div class="app-brand-name fs-4">{{ \App\Support\Station::name() }}</div>
+                    @if ($brand)
+                        <div class="text-white-50">{{ $brand->fullName }} dealer</div>
+                    @endif
                 </div>
 
                 <div class="card auth-card mx-auto">
@@ -76,6 +82,13 @@
                                 Password: <code>Demo@12345</code>
                             </div>
                         @endif
+
+                        @unless (\App\Support\Brand::locked())
+                            <div class="d-flex justify-content-between align-items-center border-top mt-4 pt-3 small">
+                                <span class="text-secondary">Fuel network: <strong class="text-body">{{ $brand?->name ?? 'not chosen' }}</strong></span>
+                                <a href="{{ route('brands.index') }}" class="fw-semibold text-decoration-none"><i class="bi bi-palette2 me-1"></i>{{ $brand ? 'Change' : 'Choose' }}</a>
+                            </div>
+                        @endunless
                     </div>
                 </div>
             </div>

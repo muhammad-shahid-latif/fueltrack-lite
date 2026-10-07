@@ -4,15 +4,17 @@ namespace App\Models;
 
 use App\Enums\ExpenseCategory;
 use App\Enums\PaymentMethod;
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\ExpenseFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Expense extends Model
 {
     /** @use HasFactory<ExpenseFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * @var list<string>
@@ -46,5 +48,34 @@ class Expense extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    /**
+     * @return HasOne<SalarySlip, $this>
+     */
+    public function salarySlip(): HasOne
+    {
+        return $this->hasOne(SalarySlip::class);
+    }
+
+    /**
+     * @return HasOne<SalaryAdvance, $this>
+     */
+    public function salaryAdvance(): HasOne
+    {
+        return $this->hasOne(SalaryAdvance::class);
+    }
+
+    /**
+     * Salary and advance expenses belong to payroll and change only there.
+     */
+    public function isPayroll(): bool
+    {
+        return $this->category->isPayroll();
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Expense '.$this->description.' Rs. '.number_format((float) $this->amount, 2);
     }
 }

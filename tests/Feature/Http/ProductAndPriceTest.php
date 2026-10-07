@@ -116,5 +116,5 @@ test('purchases work for counter items too', function () {
 
     $this->actingAs($this->staff)
         ->post(route('purchases.store'), ['fuel_product_id' => $oil->id, 'quantity' => '12', 'rate' => '500'])
-        ->assertSessionHas('success', 'Purchase saved: 12 bottles of Brake Oil for Rs. 6,000. Stock updated.');
+        ->assertSessionHas('success', fn (string $message) => str_starts_with($message, 'Purchase saved: 12 bottles of Brake Oil for Rs. 6,000. Stock updated;'));
 });

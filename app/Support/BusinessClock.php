@@ -2,12 +2,17 @@
 
 namespace App\Support;
 
+use App\Models\CustomerCredit;
+use App\Models\CustomerPayment;
 use App\Models\DailyClosing;
 use App\Models\Expense;
 use App\Models\FuelPrice;
 use App\Models\FuelPurchase;
 use App\Models\MeterReading;
+use App\Models\SalarySlip;
 use App\Models\Sale;
+use App\Models\StockAdjustment;
+use App\Models\SupplierPayment;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -63,6 +68,11 @@ final class BusinessClock
             Expense::class,
             DailyClosing::class,
             FuelPrice::class,
+            SalarySlip::class,
+            StockAdjustment::class,
+            SupplierPayment::class,
+            CustomerCredit::class,
+            CustomerPayment::class,
         ])->map(fn (string $model) => $model::query()->max('created_at'))
             ->filter()
             ->max();

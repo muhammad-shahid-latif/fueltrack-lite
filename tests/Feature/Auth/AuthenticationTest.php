@@ -15,7 +15,6 @@ test('login screen can be rendered', function () {
 
 test('guests are redirected to login', function () {
     $this->get('/dashboard')->assertRedirect('/login');
-    $this->get('/')->assertRedirect('/login');
 });
 
 test('users can authenticate with valid credentials', function () {

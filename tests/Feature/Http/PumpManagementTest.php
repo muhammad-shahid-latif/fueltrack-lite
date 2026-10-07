@@ -34,7 +34,7 @@ test('owners can add a pump and its nozzles', function () {
     expect($pump->nozzles()->pluck('number')->all())->toBe([1, 2])
         ->and((float) $pump->nozzles()->first()->current_meter)->toBe(50000.25);
 
-    $this->actingAs($this->staff)->get(route('meter-readings.create'))->assertSee('Pump 04 · Nozzle 1');
+    expect(readingFormNozzles($this->staff))->toContain('Pump 04 · Nozzle 1');
 });
 
 test('a pump taken out of service disappears from the reading form', function () {
@@ -44,10 +44,9 @@ test('a pump taken out of service disappears from the reading form', function ()
         ->put(route('pumps.update', $pump), ['name' => 'Pump 02', 'is_active' => '0'])
         ->assertRedirect(route('pumps.edit', $pump));
 
-    $this->actingAs($this->staff)
-        ->get(route('meter-readings.create'))
-        ->assertDontSee('Pump 02 · Nozzle')
-        ->assertSee('Pump 01 · Nozzle');
+    expect(readingFormNozzles($this->staff))
+        ->toContain('Pump 01 · Nozzle 1')
+        ->not->toContain('Pump 02 · Nozzle 1', 'Pump 02 · Nozzle 2');
 });
 
 test('pumps and nozzles with readings cannot be deleted', function () {
@@ -97,3 +96,19 @@ test('staff can view pumps but not manage them', function () {
     $this->actingAs($this->staff)->get(route('pumps.create'))->assertForbidden();
     $this->actingAs($this->staff)->post(route('pumps.store'), ['name' => 'X'])->assertForbidden();
 });
+
+/**
+ * Nozzle labels offered on the reading form. Read from the view data, since
+ * the page passes them to Alpine as JSON (where "·" may be escaped).
+ *
+ * @return list<string>
+ */
+function readingFormNozzles(User $user): array
+{
+    return test()->actingAs($user)
+        ->get(route('meter-readings.create'))
+        ->assertOk()
+        ->viewData('nozzles')
+        ->pluck('label')
+        ->all();
+}

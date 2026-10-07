@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsActivity;
 use Database\Factories\NozzleFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Nozzle extends Model
 {
     /** @use HasFactory<NozzleFactory> */
-    use HasFactory;
+    use HasFactory, LogsActivity;
 
     /**
      * @var list<string>
@@ -19,6 +20,7 @@ class Nozzle extends Model
     protected $fillable = [
         'pump_id',
         'fuel_product_id',
+        'tank_id',
         'number',
         'current_meter',
         'is_active',
@@ -53,6 +55,14 @@ class Nozzle extends Model
     }
 
     /**
+     * @return BelongsTo<Tank, $this>
+     */
+    public function tank(): BelongsTo
+    {
+        return $this->belongsTo(Tank::class);
+    }
+
+    /**
      * @return HasMany<MeterReading, $this>
      */
     public function meterReadings(): HasMany
@@ -66,5 +76,10 @@ class Nozzle extends Model
     public function label(): string
     {
         return "{$this->pump->name} · Nozzle {$this->number}";
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Nozzle #'.$this->number.' on pump #'.$this->pump_id;
     }
 }

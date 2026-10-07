@@ -2,6 +2,7 @@
 
 use App\Models\FuelProduct;
 use App\Models\FuelPurchase;
+use App\Models\Tank;
 use App\Models\User;
 use App\Services\DailyClosingService;
 use App\Services\FuelStockService;
@@ -14,6 +15,7 @@ beforeEach(function () {
     $this->seed();
     $this->staff = User::firstWhere('email', 'staff@alnoor.com');
     $this->petrol = FuelProduct::firstWhere('code', 'petrol');
+    $this->tank = Tank::firstWhere('name', 'Tank 1 · Petrol');
 });
 
 test('stock page shows fuel and counter items', function () {
@@ -34,15 +36,17 @@ test('recording a purchase raises stock and uses the server date', function () {
             'quantity' => '10000',
             'rate' => '270',
             'supplier_name' => 'Depot',
+            'tank_id' => $this->tank->id,
         ])
         ->assertRedirect(route('purchases.index'))
-        ->assertSessionHas('success', 'Purchase saved: 10,000 L of Petrol for Rs. 2,700,000. Stock updated.');
+        ->assertSessionHas('success', fn (string $message) => str_starts_with($message, 'Purchase saved: 10,000 L of Petrol for Rs. 2,700,000. Stock updated; average cost now'));
 
     $purchase = FuelPurchase::latest('id')->first();
 
     expect($stock->currentStock($this->petrol, today()))->toBe(round($before + 10000, 2))
         ->and($purchase->business_date->isToday())->toBeTrue()
-        ->and($purchase->recorded_by)->toBe($this->staff->id);
+        ->and($purchase->recorded_by)->toBe($this->staff->id)
+        ->and($purchase->tank_id)->toBe($this->tank->id);
 });
 
 test('purchases are validated', function () {

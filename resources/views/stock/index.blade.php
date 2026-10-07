@@ -1,4 +1,4 @@
-<x-layouts.app title="Stock" subtitle="Opening + received − sold = closing, worked out from the ledger">
+<x-layouts.app title="Stock" subtitle="Opening + received − sold ± dip adjustments = closing, worked out from the ledger">
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
         <form method="GET" action="{{ route('stock.index') }}" class="d-flex align-items-end gap-2">
             <div>
@@ -11,7 +11,10 @@
             @endunless
         </form>
 
-        <a href="{{ route('purchases.create') }}" class="btn btn-warning"><i class="bi bi-truck me-1"></i> Record purchase</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('tanks.index') }}" class="btn btn-light"><i class="bi bi-database-fill me-1"></i> Tanks</a>
+            <a href="{{ route('purchases.create') }}" class="btn btn-warning"><i class="bi bi-truck me-1"></i> Receive delivery</a>
+        </div>
     </div>
 
     @php($fuelRows = $rows->filter(fn ($row) => $row['product']->isMetered()))
@@ -52,6 +55,7 @@
                         <th class="text-end">Opening</th>
                         <th class="text-end">Received</th>
                         <th class="text-end">Sold</th>
+                        <th class="text-end">Adjusted</th>
                         <th class="text-end">Closing</th>
                         <th>Status</th>
                     </tr>
@@ -69,6 +73,7 @@
                                 <td class="text-end ft-num">@qty($row['opening'], $unit)</td>
                                 <td class="text-end ft-num text-success">+ @qty($row['received'], $unit)</td>
                                 <td class="text-end ft-num text-danger">− @qty($row['sold'], $unit)</td>
+                                <td class="text-end ft-num text-secondary">{{ $row['adjusted'] != 0 ? ($row['adjusted'] > 0 ? '+ ' : '− ').\App\Support\Format::quantity(abs($row['adjusted']), $unit) : '—' }}</td>
                                 <td class="text-end ft-num fw-bold">@qty($row['closing'], $unit)</td>
                                 <td>
                                     @if ($row['is_low'])

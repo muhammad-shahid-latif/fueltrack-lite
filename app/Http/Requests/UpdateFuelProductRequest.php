@@ -32,6 +32,7 @@ class UpdateFuelProductRequest extends FormRequest
                 ? ['required', Rule::in([ProductUnit::Liter->value])]
                 : ['required', Rule::enum(ProductUnit::class)],
             'low_stock_threshold' => ['required', 'numeric', 'min:0', 'max:10000000'],
+            'cost_price' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'is_active' => ['boolean'],
         ];
     }

@@ -43,4 +43,56 @@ class ExpenseService
             ]);
         });
     }
+
+    /**
+     * Owner correction of a register entry. Payroll entries change only in payroll.
+     *
+     * @throws ValidationException
+     */
+    public function update(
+        Expense $expense,
+        ExpenseCategory $category,
+        string $description,
+        float $amount,
+        PaymentMethod $paymentMethod,
+        ?string $notes = null,
+    ): Expense {
+        return DB::transaction(function () use ($expense, $category, $description, $amount, $paymentMethod, $notes) {
+            $expense = $this->lockManual($expense);
+
+            $expense->update([
+                'category' => $category,
+                'description' => $description,
+                'amount' => round($amount, 2),
+                'payment_method' => $paymentMethod,
+                'notes' => $notes,
+            ]);
+
+            return $expense;
+        });
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function delete(Expense $expense): void
+    {
+        DB::transaction(fn () => $this->lockManual($expense)->delete());
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function lockManual(Expense $expense): Expense
+    {
+        $expense = Expense::query()->lockForUpdate()->findOrFail($expense->id);
+
+        if ($expense->isPayroll()) {
+            throw ValidationException::withMessages(['record' => 'Salaries and advances are changed from Payroll.']);
+        }
+
+        $this->closings->assertOpen($expense->business_date, 'record');
+
+        return $expense;
+    }
 }

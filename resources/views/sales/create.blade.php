@@ -59,6 +59,29 @@
                                 </div>
                             </div>
 
+                            @if ($customers->isNotEmpty())
+                                <div class="mb-4" x-data="{ onCredit: @js((bool) old('customer_id')) }">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="on_credit" x-model="onCredit">
+                                        <label class="form-check-label fw-semibold" for="on_credit"><i class="bi bi-journal-bookmark me-1"></i>Sell on credit (debt register)</label>
+                                    </div>
+                                    <div class="row g-2" x-show="onCredit" x-cloak>
+                                        <div class="col-sm-7">
+                                            <select name="customer_id" class="form-select @error('customer_id') is-invalid @enderror" :disabled="! onCredit" aria-label="Customer">
+                                                <option value="">Choose customer…</option>
+                                                @foreach ($customers as $customer)
+                                                    <option value="{{ $customer->id }}" @selected(old('customer_id') == $customer->id)>{{ $customer->name }}</option>
+                                                @endforeach
+                                            </select>
+                                            @error('customer_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <input type="text" name="vehicle_number" value="{{ old('vehicle_number') }}" maxlength="30" class="form-control text-uppercase" placeholder="Vehicle no." :disabled="! onCredit">
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div class="mb-4">
                                 <label for="notes" class="form-label">Notes <span class="text-secondary fw-normal small">(optional)</span></label>
                                 <input type="text" id="notes" name="notes" value="{{ old('notes') }}" maxlength="500" class="form-control" placeholder="e.g. Vehicle number">

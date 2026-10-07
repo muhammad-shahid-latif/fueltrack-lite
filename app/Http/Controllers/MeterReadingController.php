@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\Shift;
 use App\Http\Requests\StoreMeterReadingRequest;
+use App\Http\Requests\UpdateMeterReadingRequest;
+use App\Models\DailyClosing;
 use App\Models\MeterReading;
 use App\Models\Nozzle;
 use App\Services\DailyClosingService;
@@ -42,6 +44,7 @@ class MeterReadingController extends Controller
             'shifts' => Shift::cases(),
             'readings' => $readings,
             'summary' => $closings->summary($date),
+            'closing' => DailyClosing::query()->whereDate('business_date', $date)->first(),
         ]);
     }
 
@@ -95,6 +98,63 @@ class MeterReadingController extends Controller
                 Format::money($sale->rate),
                 Format::money($sale->amount),
             ));
+    }
+
+    public function edit(MeterReading $meterReading, DailyClosingService $closings, MeterReadingService $service): View|RedirectResponse
+    {
+        if ($closings->isClosed($meterReading->business_date)) {
+            return $this->closedDay($meterReading);
+        }
+
+        $meterReading->load(['nozzle.pump', 'nozzle.fuelProduct', 'sale', 'recorder']);
+
+        return view('meter-readings.edit', [
+            'reading' => $meterReading,
+            'previous' => $service->neighbour($meterReading, before: true),
+            'next' => $service->neighbour($meterReading, before: false),
+            'shifts' => Shift::cases(),
+        ]);
+    }
+
+    public function update(UpdateMeterReadingRequest $request, MeterReading $meterReading, MeterReadingService $service): RedirectResponse
+    {
+        $reading = $service->update(
+            reading: $meterReading,
+            shift: $request->enum('shift', Shift::class),
+            openingMeter: (float) $request->input('opening_meter'),
+            closingMeter: (float) $request->input('closing_meter'),
+            notes: $request->input('notes'),
+        );
+
+        return redirect()
+            ->route('meter-readings.index', ['date' => $reading->business_date->toDateString()])
+            ->with('success', sprintf(
+                'Reading updated: %s × %s = %s',
+                Format::liters($reading->sale->quantity),
+                Format::money($reading->sale->rate),
+                Format::money($reading->sale->amount),
+            ));
+    }
+
+    public function destroy(MeterReading $meterReading, MeterReadingService $service): RedirectResponse
+    {
+        $meterReading->load('nozzle.pump');
+        $service->delete($meterReading);
+
+        return redirect()
+            ->route('meter-readings.index', ['date' => $meterReading->business_date->toDateString()])
+            ->with('success', sprintf(
+                'Reading deleted. %s is back to %s.',
+                $meterReading->nozzle->label(),
+                Format::meter($meterReading->opening_meter),
+            ));
+    }
+
+    private function closedDay(MeterReading $reading): RedirectResponse
+    {
+        return redirect()
+            ->route('meter-readings.index', ['date' => $reading->business_date->toDateString()])
+            ->with('warning', sprintf('%s is closed. Reopen it from Daily closing to make changes.', $reading->business_date->format('d M Y')));
     }
 
     private function dateFrom(Request $request): Carbon

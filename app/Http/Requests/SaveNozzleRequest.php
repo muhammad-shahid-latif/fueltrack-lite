@@ -28,6 +28,8 @@ class SaveNozzleRequest extends FormRequest
             ],
             // The opening meter is set once; a replaced machine gets a new nozzle.
             'opening_meter' => $creating ? ['required', 'numeric', 'min:0', 'max:999999999999.99'] : ['prohibited'],
+            // The tank must hold the same fuel as the nozzle.
+            'tank_id' => ['nullable', 'integer', Rule::exists('tanks', 'id')->where('fuel_product_id', $this->integer('fuel_product_id'))],
             'is_active' => ['boolean'],
         ];
     }
@@ -37,6 +39,6 @@ class SaveNozzleRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['fuel_product_id' => 'fuel'];
+        return ['fuel_product_id' => 'fuel', 'tank_id' => 'tank'];
     }
 }

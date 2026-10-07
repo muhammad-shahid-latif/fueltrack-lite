@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -10,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class DailyClosing extends Model
 {
+    use LogsActivity;
+
     /**
      * @var list<string>
      */
@@ -22,6 +25,8 @@ class DailyClosing extends Model
         'cash_sales',
         'total_expenses',
         'cash_expenses',
+        'customer_receipts',
+        'supplier_payments',
         'opening_cash',
         'expected_cash',
         'actual_cash',
@@ -44,6 +49,8 @@ class DailyClosing extends Model
             'cash_sales' => 'decimal:2',
             'total_expenses' => 'decimal:2',
             'cash_expenses' => 'decimal:2',
+            'customer_receipts' => 'decimal:2',
+            'supplier_payments' => 'decimal:2',
             'opening_cash' => 'decimal:2',
             'expected_cash' => 'decimal:2',
             'actual_cash' => 'decimal:2',
@@ -62,5 +69,10 @@ class DailyClosing extends Model
     public function hasCashDifference(): bool
     {
         return (float) $this->difference !== 0.0;
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Closing of '.$this->business_date?->format('d M Y');
     }
 }

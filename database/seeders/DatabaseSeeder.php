@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             SettingSeeder::class,
             FuelSetupSeeder::class,
+            PartiesSeeder::class,
             DemoOperationsSeeder::class,
         ]);
     }

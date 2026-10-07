@@ -20,7 +20,10 @@ class DailyClosingService
      * Live figures for a business day, before or after it is closed.
      * Liters count fuel only; sales include counter items.
      *
-     * @return array{date: string, total_liters: float, total_sales: float, fuel_sales: float, counter_sales: float, total_expenses: float, cash_expenses: float, is_closed: bool}
+     * Credit sales come from the debt register; cash received from credit
+     * customers and cash paid to suppliers also pass through the drawer.
+     *
+     * @return array{date: string, total_liters: float, total_sales: float, fuel_sales: float, counter_sales: float, credit_sales: float, total_expenses: float, cash_expenses: float, customer_receipts: float, supplier_payments: float, is_closed: bool}
      */
     public function summary(DateTimeInterface|string $date): array
     {
@@ -51,8 +54,11 @@ class DailyClosingService
             'total_sales' => $total,
             'fuel_sales' => $fuel,
             'counter_sales' => round($total - $fuel, 2),
+            'credit_sales' => CreditService::creditOn($date),
             'total_expenses' => round((float) $expenses->total, 2),
             'cash_expenses' => round((float) $expenses->cash, 2),
+            'customer_receipts' => CreditService::cashReceivedOn($date),
+            'supplier_payments' => SupplierService::cashPaidOn($date),
             'is_closed' => $this->isClosed($date),
         ];
     }
@@ -67,7 +73,6 @@ class DailyClosingService
         float $openingCash,
         float $actualCash,
         float $cardSales = 0,
-        float $creditSales = 0,
         ?User $closedBy = null,
         ?string $notes = null,
     ): DailyClosing {
@@ -77,37 +82,99 @@ class DailyClosingService
             throw ValidationException::withMessages(['business_date' => 'A future day cannot be closed.']);
         }
 
-        return DB::transaction(function () use ($date, $openingCash, $actualCash, $cardSales, $creditSales, $closedBy, $notes) {
+        return DB::transaction(function () use ($date, $openingCash, $actualCash, $cardSales, $closedBy, $notes) {
             $this->assertOpen($date);
-
-            $summary = $this->summary($date);
-            $cashSales = round($summary['total_sales'] - $cardSales - $creditSales, 2);
-
-            if ($cashSales < 0) {
-                throw ValidationException::withMessages([
-                    'card_sales' => 'Card and credit sales cannot exceed total sales of Rs. '.number_format($summary['total_sales'], 2).'.',
-                ]);
-            }
-
-            $expectedCash = round($openingCash + $cashSales - $summary['cash_expenses'], 2);
 
             return DailyClosing::create([
                 'business_date' => $date,
-                'total_liters' => $summary['total_liters'],
-                'total_sales' => $summary['total_sales'],
-                'card_sales' => round($cardSales, 2),
-                'credit_sales' => round($creditSales, 2),
-                'cash_sales' => $cashSales,
-                'total_expenses' => $summary['total_expenses'],
-                'cash_expenses' => $summary['cash_expenses'],
-                'opening_cash' => round($openingCash, 2),
-                'expected_cash' => $expectedCash,
-                'actual_cash' => round($actualCash, 2),
-                'difference' => round($actualCash - $expectedCash, 2),
+                ...$this->reconcile($date, $openingCash, $actualCash, $cardSales),
                 'notes' => $notes,
                 'closed_by' => $closedBy?->id,
             ]);
         });
+    }
+
+    /**
+     * Corrects the cash count of a closed day. Sales and expense totals are
+     * taken again from the records, and the cash difference is recalculated.
+     *
+     * @throws ValidationException
+     */
+    public function updateCash(
+        DailyClosing $closing,
+        float $openingCash,
+        float $actualCash,
+        float $cardSales = 0,
+        ?string $notes = null,
+    ): DailyClosing {
+        BusinessClock::assertTrustworthy();
+
+        return DB::transaction(function () use ($closing, $openingCash, $actualCash, $cardSales, $notes) {
+            $closing = DailyClosing::query()->lockForUpdate()->findOrFail($closing->id);
+
+            $closing->update([
+                ...$this->reconcile($closing->business_date->toDateString(), $openingCash, $actualCash, $cardSales),
+                'notes' => $notes,
+            ]);
+
+            return $closing;
+        });
+    }
+
+    /**
+     * Unlocks a closed day by deleting its closing, so its records can be
+     * corrected. The day is closed again from the daily closing page.
+     *
+     * @throws ValidationException
+     */
+    public function reopen(DailyClosing $closing): void
+    {
+        BusinessClock::assertTrustworthy();
+
+        $closing->delete();
+    }
+
+    /**
+     * @return array<string, float>
+     *
+     * @throws ValidationException
+     */
+    private function reconcile(string $date, float $openingCash, float $actualCash, float $cardSales): array
+    {
+        $summary = $this->summary($date);
+        $creditSales = $summary['credit_sales'];
+        $cashSales = round($summary['total_sales'] - $cardSales - $creditSales, 2);
+
+        if ($cashSales < 0) {
+            throw ValidationException::withMessages([
+                'card_sales' => sprintf(
+                    'Card sales plus credit sales (Rs. %s from the debt register) cannot exceed total sales of Rs. %s.',
+                    number_format($creditSales, 2),
+                    number_format($summary['total_sales'], 2),
+                ),
+            ]);
+        }
+
+        $expectedCash = round(
+            $openingCash + $cashSales + $summary['customer_receipts'] - $summary['cash_expenses'] - $summary['supplier_payments'],
+            2,
+        );
+
+        return [
+            'total_liters' => $summary['total_liters'],
+            'total_sales' => $summary['total_sales'],
+            'card_sales' => round($cardSales, 2),
+            'credit_sales' => round($creditSales, 2),
+            'cash_sales' => $cashSales,
+            'total_expenses' => $summary['total_expenses'],
+            'cash_expenses' => $summary['cash_expenses'],
+            'customer_receipts' => $summary['customer_receipts'],
+            'supplier_payments' => $summary['supplier_payments'],
+            'opening_cash' => round($openingCash, 2),
+            'expected_cash' => $expectedCash,
+            'actual_cash' => round($actualCash, 2),
+            'difference' => round($actualCash - $expectedCash, 2),
+        ];
     }
 
     public function isClosed(DateTimeInterface|string $date): bool

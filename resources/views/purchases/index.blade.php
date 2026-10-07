@@ -1,4 +1,4 @@
-<x-layouts.app title="Purchases" subtitle="Fuel tankers and counter stock received at the station">
+<x-layouts.app title="Purchases" subtitle="Deliveries received, with tank, supplier and weighted average cost">
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
         <form method="GET" action="{{ route('purchases.index') }}" class="d-flex flex-wrap align-items-end gap-2">
             <div>
@@ -12,7 +12,7 @@
             <button type="submit" class="btn btn-dark" aria-label="Filter"><i class="bi bi-funnel"></i></button>
         </form>
 
-        <a href="{{ route('purchases.create') }}" class="btn btn-warning"><i class="bi bi-plus-lg me-1"></i> Record purchase</a>
+        <a href="{{ route('purchases.create') }}" class="btn btn-warning"><i class="bi bi-truck me-1"></i> Receive delivery</a>
     </div>
 
     @error('to') <div class="alert alert-danger">{{ $message }}</div> @enderror
@@ -39,8 +39,9 @@
                         <th class="text-end">Quantity</th>
                         <th class="text-end">Rate</th>
                         <th class="text-end">Total</th>
+                        <th class="text-end d-none d-xl-table-cell">Avg cost after</th>
                         <th class="d-none d-md-table-cell">Supplier</th>
-                        <th class="d-none d-lg-table-cell">Invoice</th>
+                        <th class="d-none d-lg-table-cell">Tank · invoice</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,12 +56,20 @@
                             <td class="text-end ft-num">@qty($purchase->quantity, $purchase->fuelProduct->unit)</td>
                             <td class="text-end ft-num">@money($purchase->rate)</td>
                             <td class="text-end ft-num fw-bold">@money($purchase->amount)</td>
-                            <td class="d-none d-md-table-cell">{{ $purchase->supplier_name ?? '—' }}</td>
-                            <td class="d-none d-lg-table-cell small text-secondary">{{ $purchase->invoice_number ?? '—' }}</td>
+                            <td class="text-end ft-num d-none d-xl-table-cell">{{ $purchase->average_cost !== null ? \App\Support\Format::money(round((float) $purchase->average_cost, 2)) : '—' }}</td>
+                            <td class="d-none d-md-table-cell">
+                                @if ($purchase->supplier)
+                                    <a href="{{ auth()->user()->isOwner() ? route('suppliers.show', $purchase->supplier) : '#' }}" class="text-decoration-none fw-semibold">{{ $purchase->supplier->name }}</a>
+                                    @if ($purchase->due_date)<div class="small text-secondary">due {{ $purchase->due_date->format('d M') }}</div>@endif
+                                @else
+                                    {{ $purchase->supplier_name ?? '—' }}
+                                @endif
+                            </td>
+                            <td class="d-none d-lg-table-cell small text-secondary">{{ collect([$purchase->tank?->name, $purchase->invoice_number])->filter()->join(' · ') ?: '—' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="empty-state"><i class="bi bi-truck"></i>No purchases in this period.</td>
+                            <td colspan="8" class="empty-state"><i class="bi bi-truck"></i>No purchases in this period.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -1,4 +1,6 @@
 <x-layouts.app title="Meter readings" subtitle="Opening and closing meters per nozzle, by shift">
+    @php($isOwner = auth()->user()->isOwner())
+
     <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
         <form method="GET" action="{{ route('meter-readings.index') }}" class="d-flex flex-wrap align-items-end gap-2">
             <div>
@@ -27,6 +29,13 @@
         @endunless
     </div>
 
+    @if ($isOwner && $closing)
+        <div class="alert alert-secondary d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span><i class="bi bi-lock-fill me-1"></i> {{ $date->format('d M Y') }} is closed, so its readings are locked.</span>
+            <a href="{{ route('closings.show', $closing) }}" class="btn btn-sm btn-dark">Open closing to reopen the day</a>
+        </div>
+    @endif
+
     <div class="row g-3 mb-4">
         <div class="col-sm-4">
             <x-stat-tile label="Fuel sold" :value="\App\Support\Format::liters($summary['total_liters'])" icon="droplet-fill" tone="fuel" />
@@ -52,6 +61,9 @@
                         <th class="text-end">Rate</th>
                         <th class="text-end">Amount</th>
                         <th class="d-none d-md-table-cell">Recorded</th>
+                        @if ($isOwner)
+                            <th class="text-end"><span class="visually-hidden">Actions</span></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -78,10 +90,23 @@
                                     <i class="bi bi-chat-left-text ms-1" title="{{ $reading->notes }}"></i>
                                 @endif
                             </td>
+                            @if ($isOwner)
+                                <td class="text-end text-nowrap">
+                                    @if ($closing)
+                                        <a href="{{ route('closings.show', $closing) }}" class="btn btn-sm btn-light" title="Day closed. Reopen it to edit.">
+                                            <i class="bi bi-lock-fill"></i><span class="visually-hidden">Day closed</span>
+                                        </a>
+                                    @else
+                                        <a href="{{ route('meter-readings.edit', $reading) }}" class="btn btn-sm btn-outline-dark">
+                                            <i class="bi bi-pencil me-1"></i>Edit
+                                        </a>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="empty-state">
+                            <td colspan="{{ $isOwner ? 9 : 8 }}" class="empty-state">
                                 <i class="bi bi-fuel-pump"></i>
                                 No readings for {{ $date->format('d M Y') }}{{ $shift ? ', '.$shift->label().' shift' : '' }}.
                             </td>

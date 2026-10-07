@@ -19,7 +19,7 @@ class ExpenseFactory extends Factory
     {
         return [
             'business_date' => today(),
-            'category' => fake()->randomElement(ExpenseCategory::cases()),
+            'category' => fake()->randomElement(ExpenseCategory::manual()),
             'description' => fake()->sentence(3),
             'amount' => fake()->numberBetween(500, 10000),
             'payment_method' => PaymentMethod::Cash,

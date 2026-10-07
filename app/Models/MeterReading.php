@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Shift;
+use App\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -12,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  */
 class MeterReading extends Model
 {
+    use LogsActivity;
+
     /**
      * @var list<string>
      */
@@ -62,5 +65,10 @@ class MeterReading extends Model
     public function recorder(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function activityLabel(): string
+    {
+        return 'Meter reading of '.number_format((float) $this->liters, 2).' L';
     }
 }

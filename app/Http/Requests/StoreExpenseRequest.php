@@ -23,7 +23,8 @@ class StoreExpenseRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category' => ['required', Rule::enum(ExpenseCategory::class)],
+            // Salaries and advances are recorded through payroll only.
+            'category' => ['required', Rule::enum(ExpenseCategory::class)->only(ExpenseCategory::manual())],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0', 'max:10000000'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class)],
