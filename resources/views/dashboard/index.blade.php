@@ -61,6 +61,7 @@
                                     <x-tank-3d :row="$row" mini class="pb-1" />
                                     <div class="fw-semibold small text-truncate">{{ $row['tank']->name }}</div>
                                     <div class="ft-num fw-bold">@liters($row['level'])</div>
+                                    <div class="small text-secondary ft-num">of @liters($row['capacity'])</div>
                                     <div class="small {{ $row['status'] === 'ok' ? 'text-secondary' : ($row['status'] === 'low' ? 'text-warning-emphasis' : 'text-danger') }}">
                                         {{ round($row['percent']) }}% · {{ $row['days_cover'] !== null ? number_format($row['days_cover'], 1).' days' : '—' }}
                                     </div>

@@ -66,7 +66,16 @@
 
                         <x-tank-3d :row="$row" />
 
-                        <dl class="row tank-meta mb-0 mt-2 text-center">
+                        <div class="tank-capacity-bar mt-2 mb-3">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <span class="small text-secondary"><i class="bi bi-arrows-vertical me-1"></i>Full capacity</span>
+                                <span class="ft-num fw-bold">@liters($row['capacity'])</span>
+                            </div>
+                            <div class="share-bar mt-1 {{ \App\Support\Grade::cssClass($tank->fuelProduct) }}"><span style="width: {{ $row['percent'] }}%" data-tank-bar="{{ $tank->id }}"></span></div>
+                            <div class="small text-secondary mt-1 text-end"><span data-tank-level="{{ $tank->id }}">@liters($row['level'])</span> of @liters($row['capacity'])</div>
+                        </div>
+
+                        <dl class="row tank-meta mb-0 text-center">
                             <div class="col-6"><dt>In tank</dt><dd data-tank-level="{{ $tank->id }}">@liters($row['level'])</dd></div>
                             <div class="col-6"><dt>Room left</dt><dd data-tank-ullage="{{ $tank->id }}">@liters($row['ullage'])</dd></div>
                             <div class="col-6"><dt>Sold today</dt><dd class="amount-out" data-tank-sold="{{ $tank->id }}">@liters($row['sold_today'])</dd></div>
@@ -111,6 +120,7 @@
                         data.tanks.forEach((tank) => {
                             const set = (attr, value) => document.querySelectorAll(`[${attr}="${tank.id}"]`).forEach((el) => (el.textContent = value));
                             document.querySelectorAll(`[data-tank-fill="${tank.id}"]`).forEach((el) => el.style.setProperty('--fill', `${tank.percent}%`));
+                            document.querySelectorAll(`[data-tank-bar="${tank.id}"]`).forEach((el) => (el.style.width = `${tank.percent}%`));
                             set('data-tank-percent', `${Math.round(tank.percent)}%`);
                             set('data-tank-level', tank.level_label);
                             set('data-tank-ullage', tank.ullage_label);

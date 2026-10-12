@@ -11,6 +11,12 @@
         <div class="tank-top"></div>
         <div class="tank-ticks"></div>
         @unless ($mini)
+            {{-- The full-capacity mark at the top of the tank. --}}
+            <div class="tank-full-mark" aria-hidden="true">
+                <span>FULL {{ \App\Support\Format::number(round((float) $row['tank']->capacity)) }} L</span>
+            </div>
+        @endunless
+        @unless ($mini)
             <div class="tank-readout" data-tank-percent="{{ $row['tank']->id }}">{{ round($row['percent']) }}%</div>
         @endunless
     </div>

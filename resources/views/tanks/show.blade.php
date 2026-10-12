@@ -22,6 +22,7 @@
                         <span class="badge {{ $statusBadge[$level['status']][0] }} mb-2">{{ $statusBadge[$level['status']][1] }}</span>
                         <x-tank-3d :row="$level" />
                         <dl class="row tank-meta mb-0 mt-2">
+                            <div class="col-12"><dt>Full capacity</dt><dd class="fs-5">@liters($level['capacity'])</dd></div>
                             <div class="col-6"><dt>In tank</dt><dd>@liters($level['level'])</dd></div>
                             <div class="col-6"><dt>Room left</dt><dd>@liters($level['ullage'])</dd></div>
                             <div class="col-6"><dt>Avg daily sale</dt><dd>@liters($level['avg_daily'])</dd></div>
