@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StockAdjustmentType;
 use App\Http\Requests\RecordDipRequest;
 use App\Http\Requests\SaveTankRequest;
 use App\Http\Requests\TransferFuelRequest;
 use App\Models\FuelProduct;
+use App\Models\StockAdjustment;
 use App\Models\Tank;
 use App\Services\FuelStockService;
 use App\Services\TankService;
@@ -64,14 +66,26 @@ class TankController extends Controller
         $from = $request->date('from') ?? BusinessClock::today()->subDays(6);
         $to = $request->date('to') ?? BusinessClock::today();
         $tank->load(['fuelProduct', 'nozzles.pump']);
+        $levels = $tanks->levels();
 
         return view('tanks.show', [
             'tank' => $tank,
-            'level' => $tanks->levels()->firstWhere('tank.id', $tank->id),
+            'level' => $levels->firstWhere('tank.id', $tank->id),
+            // Same-fuel tanks this one can transfer into, with their live level and room.
+            'targets' => $levels
+                ->filter(fn (array $row) => $row['tank']->is_active && $row['tank']->fuel_product_id === $tank->fuel_product_id && $row['tank']->id !== $tank->id)
+                ->map(fn (array $row) => ['id' => $row['tank']->id, 'name' => $row['tank']->name, 'level' => $row['level'], 'room' => $row['ullage']])
+                ->values(),
+            'recentTransfers' => StockAdjustment::query()
+                ->with('recorder')
+                ->where('tank_id', $tank->id)
+                ->whereIn('type', [StockAdjustmentType::TransferIn->value, StockAdjustmentType::TransferOut->value])
+                ->latest('id')
+                ->limit(5)
+                ->get(),
             'ledger' => $tanks->ledger($tank, $from, $to),
             'from' => $from,
             'to' => $to,
-            'otherTanks' => Tank::query()->active()->where('fuel_product_id', $tank->fuel_product_id)->whereKeyNot($tank->id)->orderBy('name')->get(),
         ]);
     }
 
@@ -152,6 +166,9 @@ class TankController extends Controller
         $to = Tank::findOrFail($request->integer('to_tank_id'));
         $reference = $tanks->transfer($tank, $to, (float) $request->input('quantity'), $request->user(), $request->input('notes'));
 
-        return back()->with('success', sprintf('%s moved from %s to %s (%s).', Format::liters($request->input('quantity')), $tank->name, $to->name, $reference));
+        return redirect()
+            ->route('tanks.show', $tank)
+            ->with('success', sprintf('%s moved from %s to %s (%s).', Format::liters($request->input('quantity')), $tank->name, $to->name, $reference))
+            ->with('transferred', true);
     }
 }

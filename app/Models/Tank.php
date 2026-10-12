@@ -41,6 +41,7 @@ class Tank extends Model
     protected function casts(): array
     {
         return [
+            'fuel_product_id' => 'integer',
             'capacity' => 'decimal:2',
             'opening_stock' => 'decimal:2',
             'is_active' => 'boolean',

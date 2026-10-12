@@ -58,7 +58,7 @@
                                 <div class="small mt-2" x-show="variance !== null" x-cloak>
                                     Book stock @liters($level['level'] ?? 0) ·
                                     <span class="fw-bold" :class="variance > 0 ? 'amount-in' : (variance < 0 ? 'amount-out' : '')"
-                                          x-text="(variance > 0 ? 'Gain +' : (variance < 0 ? 'Loss ' : 'Exact ')) + variance.toLocaleString('en-US') + ' L'"></span>
+                                          x-text="variance === null ? '' : (variance > 0 ? 'Gain +' : (variance < 0 ? 'Loss ' : 'Exact ')) + variance.toLocaleString('en-US') + ' L'"></span>
                                 </div>
                                 <input type="text" name="notes" value="{{ old('notes') }}" maxlength="500" class="form-control mt-3" placeholder="Notes (optional)">
                                 <button type="submit" class="btn btn-dark w-100 mt-3" :disabled="submitting || dip === ''"><i class="bi bi-rulers me-1"></i> Save dip</button>
@@ -73,25 +73,61 @@
                         <div class="card-body p-4">
                             @if (! auth()->user()->isOwner())
                                 <p class="text-secondary small mb-0">Only the owner can move fuel between tanks.</p>
-                            @elseif ($otherTanks->isEmpty())
+                            @elseif ($targets->isEmpty())
                                 <p class="text-secondary small mb-0">There is no other active {{ $tank->fuelProduct->name }} tank to transfer into.</p>
                             @else
-                                <form method="POST" action="{{ route('tanks.transfer', $tank) }}" novalidate x-data="{ submitting: false }" @submit="submitting = true">
+                                @if (session('transferred'))
+                                    <div class="alert alert-success small py-2 d-flex gap-2 align-items-center"><i class="bi bi-check-circle-fill"></i>{{ session('success') }}</div>
+                                @endif
+                                @foreach (['clock', 'business_date', 'record'] as $field)
+                                    @error($field) <div class="alert alert-danger small py-2">{{ $message }}</div> @enderror
+                                @endforeach
+
+                                <form method="POST" action="{{ route('tanks.transfer', $tank) }}" novalidate
+                                      x-data="transferForm(@js($targets), {{ (float) ($level['level'] ?? 0) }}, @js((int) old('to_tank_id', $targets->first()['id'])), @js(old('quantity', '')))"
+                                      @submit="if (problem) { $event.preventDefault(); return; } submitting = true">
                                     @csrf
                                     <label for="to_tank_id" class="form-label">Move into</label>
-                                    <select id="to_tank_id" name="to_tank_id" class="form-select @error('to_tank_id') is-invalid @enderror">
-                                        @foreach ($otherTanks as $other)
-                                            <option value="{{ $other->id }}" @selected(old('to_tank_id') == $other->id)>{{ $other->name }}</option>
+                                    <select id="to_tank_id" name="to_tank_id" x-model.number="toId" class="form-select @error('to_tank_id') is-invalid @enderror">
+                                        @foreach ($targets as $target)
+                                            <option value="{{ $target['id'] }}">{{ $target['name'] }} · room {{ \App\Support\Format::liters($target['room']) }}</option>
                                         @endforeach
                                     </select>
                                     @error('to_tank_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-                                    <label for="quantity" class="form-label mt-3">Liters</label>
-                                    <input type="text" inputmode="decimal" id="quantity" name="quantity" value="{{ old('quantity') }}"
-                                           class="form-control ft-num @error('quantity') is-invalid @enderror" placeholder="1000">
-                                    @error('quantity') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+                                    <label for="transfer_quantity" class="form-label mt-3">Liters</label>
+                                    <div class="input-group">
+                                        <input type="text" inputmode="decimal" id="transfer_quantity" name="quantity" x-model="qty"
+                                               class="form-control ft-num @error('quantity') is-invalid @enderror" :class="{ 'is-invalid': problem }" placeholder="1000">
+                                        <button type="button" class="btn btn-light" @click="qty = String(max)" title="Largest amount that fits">Max</button>
+                                    </div>
+                                    @error('quantity')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @else
+                                        <div class="text-danger small mt-1" x-show="problem" x-text="problem"></div>
+                                    @enderror
+
+                                    <div class="small mt-2 p-2 rounded-3 bg-body-tertiary" x-show="liters > 0 && ! problem" x-cloak>
+                                        <div class="d-flex justify-content-between"><span>{{ $tank->name }} after</span><strong class="ft-num" x-text="fmt(fromLevel - liters) + ' L'"></strong></div>
+                                        <div class="d-flex justify-content-between"><span x-text="(target?.name ?? '') + ' after'"></span><strong class="ft-num" x-text="fmt((target?.level ?? 0) + liters) + ' L'"></strong></div>
+                                    </div>
+
                                     <input type="text" name="notes" value="{{ old('notes') }}" maxlength="500" class="form-control mt-3" placeholder="Reason (optional)">
-                                    <button type="submit" class="btn btn-outline-dark w-100 mt-3" :disabled="submitting"><i class="bi bi-arrow-left-right me-1"></i> Transfer fuel</button>
+                                    <button type="submit" class="btn btn-dark w-100 mt-3" :disabled="submitting || liters <= 0 || problem !== ''">
+                                        <span x-show="submitting" x-cloak class="spinner-border spinner-border-sm me-2"></span>
+                                        <i class="bi bi-arrow-left-right me-1"></i> Transfer fuel
+                                    </button>
                                 </form>
+
+                                @if ($recentTransfers->isNotEmpty())
+                                    <div class="small text-secondary fw-semibold mt-4 mb-2">Recent transfers</div>
+                                    @foreach ($recentTransfers as $transfer)
+                                        <div class="d-flex justify-content-between small py-1 border-bottom">
+                                            <span>{{ $transfer->business_date->format('d M') }} · {{ $transfer->notes }}</span>
+                                            <span @class(['ft-num fw-semibold', 'amount-in' => $transfer->quantity > 0, 'amount-out' => $transfer->quantity < 0])>{{ $transfer->quantity > 0 ? '+' : '' }}@liters($transfer->quantity)</span>
+                                        </div>
+                                    @endforeach
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -160,4 +196,22 @@
             </table>
         </div>
     </div>
+    <script>
+        function transferForm(targets, fromLevel, toId, qty) {
+            return {
+                targets, fromLevel, toId, qty, submitting: false,
+
+                get target() { return this.targets.find((t) => t.id === this.toId) ?? null; },
+                get liters() { const v = parseFloat(this.qty); return Number.isFinite(v) ? v : 0; },
+                get max() { return Math.max(0, Math.floor(Math.min(this.fromLevel, this.target?.room ?? 0) * 100) / 100); },
+                get problem() {
+                    if (this.qty === '' || this.liters <= 0) return '';
+                    if (this.liters > this.fromLevel + 0.005) return 'This tank has only ' + this.fmt(this.fromLevel) + ' L.';
+                    if (this.target && this.liters > this.target.room + 0.005) return this.target.name + ' has room for only ' + this.fmt(this.target.room) + ' L.';
+                    return '';
+                },
+                fmt(v) { return Number(v).toLocaleString('en-US', { maximumFractionDigits: 2 }); },
+            };
+        }
+    </script>
 </x-layouts.app>

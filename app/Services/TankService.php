@@ -250,7 +250,7 @@ class TankService
                 throw ValidationException::withMessages(['to_tank_id' => 'Choose a different tank to transfer into.']);
             }
 
-            if ($from->fuel_product_id !== $to->fuel_product_id) {
+            if ((int) $from->fuel_product_id !== (int) $to->fuel_product_id) {
                 throw ValidationException::withMessages(['to_tank_id' => "{$to->name} holds {$to->fuelProduct->name}. Fuel can only move between tanks of the same product."]);
             }
 

@@ -7,6 +7,7 @@ use App\Models\FuelProduct;
 use App\Models\Supplier;
 use App\Models\Tank;
 use App\Models\User;
+use App\Services\TankService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -120,4 +121,23 @@ test('the misc register filters by group', function () {
         ->assertOk()
         ->assertSee('Electricity bill')
         ->assertDontSee('Forecourt cleaning');
+});
+
+test('the owner transfers fuel between tanks from the tank page', function () {
+    $from = Tank::firstWhere('name', 'Tank 1 · Petrol');
+    $to = Tank::firstWhere('name', 'Tank 2 · Petrol');
+    $tanks = app(TankService::class);
+    [$fromBefore, $toBefore] = [$tanks->level($from), $tanks->level($to)];
+
+    $this->actingAs($this->owner)
+        ->post(route('tanks.transfer', $from), ['to_tank_id' => $to->id, 'quantity' => '124'])
+        ->assertRedirect(route('tanks.show', $from))
+        ->assertSessionHas('transferred', true);
+
+    expect($tanks->level($from))->toBe(round($fromBefore - 124, 2))
+        ->and($tanks->level($to))->toBe(round($toBefore + 124, 2));
+
+    $this->actingAs($this->owner)
+        ->post(route('tanks.transfer', $from), ['to_tank_id' => $to->id, 'quantity' => '999999'])
+        ->assertSessionHasErrors('quantity');
 });
