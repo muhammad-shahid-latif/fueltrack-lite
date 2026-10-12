@@ -6,6 +6,7 @@ use App\Models\FuelProduct;
 use App\Models\Nozzle;
 use App\Models\Tank;
 use App\Models\User;
+use App\Services\DailyClosingService;
 use App\Services\FuelStockService;
 use App\Services\MeterReadingService;
 use App\Services\TankService;
@@ -90,3 +91,20 @@ test('the ledger lists movements with a running balance', function () {
         ->and($ledger['rows']->pluck('balance')->all())->toBe([7000.0, 6500.0, 6450.0])
         ->and($ledger['closing'])->toBe(6450.0);
 });
+
+test('fuel can be transferred after the day is closed because no closing figure changes', function () {
+    $second = Tank::factory()->for($this->product)->create(['capacity' => 10000, 'opening_stock' => 0]);
+    app(DailyClosingService::class)->close(today(), openingCash: 0, actualCash: 0);
+
+    $this->tanks->transfer($this->tank, $second, 500);
+
+    expect($this->tanks->level($this->tank))->toBe(4500.0)
+        ->and($this->tanks->level($second))->toBe(500.0)
+        ->and($this->stock->currentStock($this->product, today()))->toBe(5000.0);
+});
+
+test('dips are still blocked on a closed day because they change stock', function () {
+    app(DailyClosingService::class)->close(today(), openingCash: 0, actualCash: 0);
+
+    $this->tanks->recordDip($this->tank, 4900);
+})->throws(ValidationException::class, 'already closed');

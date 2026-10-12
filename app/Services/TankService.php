@@ -233,6 +233,7 @@ class TankService
 
     /**
      * Moves fuel from one tank to another tank of the same product.
+     * Allowed on a closed day because no closing figure changes.
      *
      * @throws ValidationException
      */
@@ -241,7 +242,10 @@ class TankService
         $date = Carbon::parse($date ?? BusinessClock::today())->toDateString();
 
         return DB::transaction(function () use ($from, $to, $quantity, $recordedBy, $notes, $date) {
-            $this->closings->assertOpen($date);
+            // A transfer only moves fuel between two tanks of the same product:
+            // product stock, sales and cash stay the same, so it is allowed even
+            // after the day is closed. The server clock must still be trustworthy.
+            BusinessClock::assertTrustworthy();
 
             $from = Tank::query()->lockForUpdate()->findOrFail($from->id);
             $to = Tank::query()->with('fuelProduct')->lockForUpdate()->findOrFail($to->id);
