@@ -26,7 +26,7 @@ final class Navigation
                 self::item('Nozzles live', 'broadcast-pin', 'nozzles.index'),
                 self::item('Sales', 'receipt', 'sales.index'),
                 self::item('Debt register', 'journal-bookmark', 'credits.index'),
-                self::item('Misc. register', 'wallet2', 'expenses.index'),
+                self::item('Office Expense', 'wallet2', 'expenses.index'),
                 self::item('Daily closing', 'journal-check', 'closings.index'),
             ]],
             ['heading' => 'Tanks & stock', 'items' => [

@@ -6,6 +6,7 @@ use App\Enums\ExpenseCategory;
 use App\Enums\PaymentMethod;
 use App\Models\Expense;
 use App\Models\User;
+use App\Support\BusinessClock;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,11 +27,13 @@ class ExpenseService
         PaymentMethod $paymentMethod = PaymentMethod::Cash,
         ?User $recordedBy = null,
         ?string $notes = null,
+        bool $allowClosedDay = false,
     ): Expense {
         $date = Carbon::parse($date)->toDateString();
 
-        return DB::transaction(function () use ($date, $category, $description, $amount, $paymentMethod, $recordedBy, $notes) {
-            $this->closings->assertOpen($date);
+        return DB::transaction(function () use ($date, $category, $description, $amount, $paymentMethod, $recordedBy, $notes, $allowClosedDay) {
+            // Payroll may book bank payments on a closed day; they never touch the cash count.
+            $allowClosedDay ? BusinessClock::assertTrustworthy() : $this->closings->assertOpen($date);
 
             return Expense::create([
                 'business_date' => $date,

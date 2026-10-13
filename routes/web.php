@@ -102,7 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/payroll', [PayrollController::class, 'report'])->name('payroll.report');
         Route::get('/activity', ActivityLogController::class)->name('activity.index');
 
-        // Miscellaneous register corrections
+        // Office Expense corrections
         Route::resource('expenses', ExpenseController::class)->only(['edit', 'update', 'destroy']);
 
         // Tanks

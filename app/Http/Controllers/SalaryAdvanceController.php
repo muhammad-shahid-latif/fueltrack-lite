@@ -27,9 +27,10 @@ class SalaryAdvanceController extends Controller
         return redirect()
             ->route('employees.show', $employee)
             ->with('success', sprintf(
-                'Advance of %s given to %s. %s',
+                'Advance of %s given to %s%s. %s',
                 Format::money($advance->amount),
                 $employee->name,
+                $advance->business_date->isToday() ? '' : ' (booked on '.$advance->business_date->format('d M Y').' because today is closed)',
                 $slip
                     ? "Added to the {$slip->month->format('F Y')} salary sheet: net salary is now ".Format::money($slip->net_salary).'.'
                     : 'It will be recovered from the next salary.',

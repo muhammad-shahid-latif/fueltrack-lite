@@ -50,6 +50,7 @@ class PayrollController extends Controller
             'missing' => $missing,
             'canPrepare' => $month->lte($current),
             'todayIsClosed' => $closings->isClosed(BusinessClock::today()),
+            'cashBookedOn' => $payroll->bookingDate(PaymentMethod::Cash),
             'totals' => [
                 'gross' => round($slips->sum(fn (SalarySlip $slip) => $slip->grossSalary()), 2),
                 'advances' => round($slips->sum(fn (SalarySlip $slip) => (float) $slip->advance_deduction), 2),
@@ -150,17 +151,31 @@ class PayrollController extends Controller
 
         return redirect()
             ->route('payroll.index', ['month' => $slip->month->format('Y-m')])
-            ->with('success', sprintf('%s paid %s by %s.', $slip->employee->name, Format::money($slip->net_salary), strtolower($slip->payment_method->label())));
+            ->with('success', sprintf(
+                '%s paid %s by %s%s.',
+                $slip->employee->name,
+                Format::money($slip->net_salary),
+                strtolower($slip->payment_method->label()),
+                $slip->paid_on->isToday() ? '' : ', booked on '.$slip->paid_on->format('d M Y').' because today is closed',
+            ));
     }
 
     public function payAll(PaySalaryRequest $request, PayrollService $payroll): RedirectResponse
     {
         $month = $this->month($request->input('month')) ?? BusinessClock::today()->startOfMonth();
-        $count = $payroll->payAll($month, $request->enum('payment_method', PaymentMethod::class), $request->user());
+        $method = $request->enum('payment_method', PaymentMethod::class);
+        $count = $payroll->payAll($month, $method, $request->user());
+        $bookedOn = $payroll->bookingDate($method);
 
         return redirect()
             ->route('payroll.index', ['month' => $month->format('Y-m')])
-            ->with('success', sprintf('%d %s for %s paid.', $count, str('salary')->plural($count), $month->format('F Y')));
+            ->with('success', sprintf(
+                '%d %s for %s paid%s.',
+                $count,
+                str('salary')->plural($count),
+                $month->format('F Y'),
+                $bookedOn->isToday() ? '' : ', booked on '.$bookedOn->format('d M Y').' because today is closed',
+            ));
     }
 
     public function reverse(SalarySlip $slip, PayrollService $payroll): RedirectResponse

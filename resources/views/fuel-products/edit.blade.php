@@ -61,7 +61,7 @@
                             <div class="col-sm-4">
                                 <label for="cost_price" class="form-label">Cost price (Rs.)</label>
                                 <input type="text" inputmode="decimal" id="cost_price" name="cost_price"
-                                       value="{{ old('cost_price', $product->cost_price !== null ? \App\Support\Format::number($product->cost_price) : '') }}"
+                                       value="{{ old('cost_price', $product->cost_price !== null ? \App\Support\Format::input($product->cost_price) : '') }}"
                                        class="form-control ft-num @error('cost_price') is-invalid @enderror" placeholder="Purchase rate">
                                 @error('cost_price')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -72,7 +72,7 @@
                             <div class="col-sm-4">
                                 <label for="low_stock_threshold" class="form-label">Reorder level</label>
                                 <input type="text" inputmode="decimal" id="low_stock_threshold" name="low_stock_threshold"
-                                       value="{{ old('low_stock_threshold', \App\Support\Format::number($product->low_stock_threshold)) }}"
+                                       value="{{ old('low_stock_threshold', \App\Support\Format::input($product->low_stock_threshold)) }}"
                                        class="form-control ft-num @error('low_stock_threshold') is-invalid @enderror" required>
                                 @error('low_stock_threshold') <div class="invalid-feedback">{{ $message }}</div> @enderror
                             </div>

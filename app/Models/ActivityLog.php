@@ -20,7 +20,7 @@ class ActivityLog extends Model
         FuelPurchase::class => 'Purchases',
         FuelPrice::class => 'Prices',
         FuelProduct::class => 'Products',
-        Expense::class => 'Misc. register',
+        Expense::class => 'Office expense',
         DailyClosing::class => 'Daily closing',
         Tank::class => 'Tanks',
         StockAdjustment::class => 'Tank adjustments',

@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * Categories of the miscellaneous register. Each belongs to a group:
+ * Categories of the Office Expense register. Each belongs to a group:
  * utilities, maintenance, operational, or payroll (which is written by
  * payroll only).
  */

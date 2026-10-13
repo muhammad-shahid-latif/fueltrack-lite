@@ -42,7 +42,7 @@
                                 <div class="input-group has-validation">
                                     <span class="input-group-text">Rs.</span>
                                     <input type="text" inputmode="decimal" id="monthly_salary" name="monthly_salary"
-                                           value="{{ old('monthly_salary', $editing ? \App\Support\Format::number($employee->monthly_salary) : '') }}"
+                                           value="{{ old('monthly_salary', $editing ? \App\Support\Format::input($employee->monthly_salary) : '') }}"
                                            class="form-control ft-num @error('monthly_salary') is-invalid @enderror" required>
                                     @error('monthly_salary') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                 </div>

@@ -1,4 +1,4 @@
-<x-layouts.app title="Miscellaneous register" subtitle="Utilities, maintenance and operational costs, with full history">
+<x-layouts.app title="Office Expense" subtitle="Utilities, maintenance and operational costs, with full history">
     @php($groupIcons = ['Utilities' => ['lightning-charge', 'cash'], 'Maintenance' => ['tools', 'violet'], 'Operational' => ['gear-wide-connected', 'teal'], 'Payroll' => ['cash-coin', 'expense']])
     @php($periodTotal = $byGroup->sum())
 

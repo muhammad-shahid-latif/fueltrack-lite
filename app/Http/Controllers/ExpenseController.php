@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * The miscellaneous register: utilities, maintenance and operational costs,
+ * The Office Expense register: utilities, maintenance and operational costs,
  * plus the payroll entries written by payroll.
  */
 class ExpenseController extends Controller

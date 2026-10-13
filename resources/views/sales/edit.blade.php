@@ -19,7 +19,7 @@
                     </div>
 
                     <form method="POST" action="{{ route('sales.update', $sale) }}" novalidate
-                          x-data="{ quantity: @js(old('quantity', \App\Support\Format::number($sale->quantity))), rate: @js(old('rate', (float) $sale->rate)),
+                          x-data="{ quantity: @js(old('quantity', \App\Support\Format::input($sale->quantity))), rate: @js(old('rate', (float) $sale->rate)),
                                     available: {{ $available }}, submitting: false,
                                     get total() { const t = parseFloat(this.quantity) * parseFloat(this.rate); return Number.isFinite(t) ? Math.round(t * 100) / 100 : 0 },
                                     get overStock() { return parseFloat(this.quantity) > this.available + 0.005 },

@@ -191,17 +191,37 @@ test('pay all pays every pending slip of the month', function () {
         ->and(Expense::query()->distinct()->pluck('payment_method')->map->value->all())->toBe([PaymentMethod::Bank->value]);
 });
 
-test('salaries cannot be paid on a closed day', function () {
-    $slip = $this->payroll->prepare('2026-10-01')->first();
+test('salaries are paid on a closed day: bank today, cash on the next open day', function () {
+    [$first, $second] = $this->payroll->prepare('2026-10-01')->values()->all();
+    app(DailyClosingService::class)->close(today(), 0, 0);
+
+    $this->actingAs($this->owner)->get(route('payroll.index'))->assertOk()->assertSee('Today is closed');
+
+    $this->actingAs($this->owner)
+        ->post(route('payroll.slips.pay', $first), ['payment_method' => 'bank'])
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($this->owner)
+        ->post(route('payroll.slips.pay', $second), ['payment_method' => 'cash'])
+        ->assertSessionHasNoErrors();
+
+    expect($first->fresh()->paid_on->toDateString())->toBe(today()->toDateString())
+        ->and($second->fresh()->paid_on->toDateString())->toBe(today()->addDay()->toDateString())
+        ->and($second->fresh()->status)->toBe(SalarySlipStatus::Paid);
+});
+
+test('advances are given on a closed day and amounts typed with commas are accepted', function () {
+    $employee = $this->payroll->prepare('2026-10-01')->first()->employee;
     app(DailyClosingService::class)->close(today(), 0, 0);
 
     $this->actingAs($this->owner)
-        ->post(route('payroll.slips.pay', $slip), ['payment_method' => 'cash'])
-        ->assertSessionHasErrors('business_date');
+        ->post(route('employees.advances.store', $employee), ['amount' => '1,000', 'payment_method' => 'cash'])
+        ->assertSessionHasNoErrors();
 
-    expect($slip->fresh()->status)->toBe(SalarySlipStatus::Pending);
+    $advance = $employee->advances()->latest('id')->first();
 
-    $this->actingAs($this->owner)->get(route('payroll.index'))->assertOk()->assertSee('Today is closed');
+    expect((float) $advance->amount)->toBe(1000.0)
+        ->and($advance->business_date->toDateString())->toBe(today()->addDay()->toDateString());
 });
 
 test('employees with salary records cannot be deleted', function () {

@@ -46,6 +46,17 @@ final class Format
         return number_format($value, fmod($value, 1.0) === 0.0 ? 0 : 2);
     }
 
+    /**
+     * A number for a form field: no thousands separators, no trailing zeros
+     * ("1000", "1000.5"), so it always passes numeric validation.
+     */
+    public static function input(float|int|string|null $value): string
+    {
+        $value = round((float) $value, 2);
+
+        return fmod($value, 1.0) === 0.0 ? (string) (int) $value : rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    }
+
     public static function meter(float|int|string|null $value): string
     {
         return number_format((float) $value, 2, '.', '');

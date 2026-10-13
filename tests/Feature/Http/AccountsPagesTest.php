@@ -80,7 +80,7 @@ test('a delivery with a supplier creates a bill with a due date and an on-the-sp
         ->and((float) $supplier->payments()->sum('amount'))->toBe($paidBefore + 100000);
 });
 
-test('the owner corrects a misc register entry and the audit trail keeps old and new values', function () {
+test('the owner corrects a office expense entry and the audit trail keeps old and new values', function () {
     $expense = Expense::query()->whereDate('business_date', today())->where('category', 'generator')->first();
 
     $this->actingAs($this->owner)
@@ -101,21 +101,21 @@ test('the owner corrects a misc register entry and the audit trail keeps old and
     $this->actingAs($this->owner)->get(route('activity.index'))->assertOk()->assertSee('Generator diesel (corrected)');
 });
 
-test('payroll entries cannot be edited from the misc register', function () {
+test('payroll entries cannot be edited from the office expense', function () {
     $salary = Expense::query()->where('category', 'salary')->first();
 
     $this->actingAs($this->owner)->get(route('expenses.edit', $salary))->assertRedirect(route('payroll.index'));
     $this->actingAs($this->owner)->delete(route('expenses.destroy', $salary))->assertSessionHasErrors('record');
 });
 
-test('closed days keep their misc register entries locked', function () {
+test('closed days keep their office expense entries locked', function () {
     $old = Expense::query()->whereDate('business_date', today()->subDays(2))->where('category', 'cleaning')->first();
 
     $this->actingAs($this->owner)->delete(route('expenses.destroy', $old))->assertSessionHasErrors('record');
     expect(Expense::find($old->id))->not->toBeNull();
 });
 
-test('the misc register filters by group', function () {
+test('the office expense filters by group', function () {
     $this->actingAs($this->owner)
         ->get(route('expenses.index', ['from' => today()->subDays(9)->toDateString(), 'to' => today()->toDateString(), 'group' => 'Utilities']))
         ->assertOk()

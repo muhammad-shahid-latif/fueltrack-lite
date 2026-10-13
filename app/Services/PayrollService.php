@@ -46,7 +46,7 @@ class PayrollService
         }
 
         return DB::transaction(function () use ($employee, $amount, $paymentMethod, $recordedBy, $notes, $date) {
-            $date = $date ? Carbon::parse($date)->startOfDay() : BusinessClock::today();
+            $date = $this->bookingDate($paymentMethod, $date);
 
             $expense = $this->expenses->record(
                 date: $date,
@@ -56,6 +56,7 @@ class PayrollService
                 paymentMethod: $paymentMethod,
                 recordedBy: $recordedBy,
                 notes: $notes,
+                allowClosedDay: $paymentMethod !== PaymentMethod::Cash,
             );
 
             $advance = SalaryAdvance::create([
@@ -83,7 +84,7 @@ class PayrollService
     {
         DB::transaction(function () use ($advance) {
             $advance = SalaryAdvance::query()->with(['employee', 'expense'])->lockForUpdate()->findOrFail($advance->id);
-            $this->closings->assertOpen($advance->business_date);
+            $this->assertCanChange($advance->expense->payment_method, $advance->business_date);
 
             if ($this->outstandingAdvance($advance->employee) + 0.005 < (float) $advance->amount) {
                 throw ValidationException::withMessages([
@@ -244,9 +245,8 @@ class PayrollService
     ): SalarySlip {
         return DB::transaction(function () use ($slip, $paymentMethod, $paidBy, $date) {
             $slip = $this->lockPending($slip);
-            $today = $date ? Carbon::parse($date)->startOfDay() : BusinessClock::today();
-
-            $this->closings->assertOpen($today);
+            $today = $this->bookingDate($paymentMethod, $date);
+            BusinessClock::assertTrustworthy();
 
             if ((float) $slip->advance_deduction > $this->availableAdvance($slip) + 0.005) {
                 throw ValidationException::withMessages([
@@ -262,6 +262,7 @@ class PayrollService
                     amount: (float) $slip->net_salary,
                     paymentMethod: $paymentMethod,
                     recordedBy: $paidBy,
+                    allowClosedDay: $paymentMethod !== PaymentMethod::Cash,
                 )
                 : null;
 
@@ -314,7 +315,7 @@ class PayrollService
                 throw ValidationException::withMessages(['record' => 'This salary has not been paid yet.']);
             }
 
-            $this->closings->assertOpen($slip->paid_on);
+            $this->assertCanChange($slip->payment_method ?? PaymentMethod::Cash, $slip->paid_on);
 
             $expense = $slip->expense;
 
@@ -340,6 +341,44 @@ class PayrollService
     public function delete(SalarySlip $slip): void
     {
         DB::transaction(fn () => $this->lockPending($slip)->delete());
+    }
+
+    /**
+     * The day a payroll payment is booked on. Normally today. When today is
+     * already closed, bank and cheque payments still go on today (they never
+     * touch the cash drawer), while cash goes on the next open day so the
+     * closed day's cash count stays correct.
+     */
+    public function bookingDate(PaymentMethod $method, DateTimeInterface|string|null $date = null): Carbon
+    {
+        if ($date !== null) {
+            return Carbon::parse($date)->startOfDay();
+        }
+
+        $day = BusinessClock::today();
+
+        if ($method !== PaymentMethod::Cash) {
+            return $day;
+        }
+
+        while ($this->closings->isClosed($day)) {
+            $day = $day->copy()->addDay();
+        }
+
+        return $day;
+    }
+
+    /**
+     * Cash payroll entries change only while their day is open; bank and
+     * cheque entries can be corrected at any time.
+     *
+     * @throws ValidationException
+     */
+    private function assertCanChange(PaymentMethod $method, DateTimeInterface|string $date): void
+    {
+        $method === PaymentMethod::Cash
+            ? $this->closings->assertOpen($date, 'record')
+            : BusinessClock::assertTrustworthy();
     }
 
     /**

@@ -15,8 +15,9 @@
     </div>
 
     @if ($todayIsClosed && $totals['pending_count'] > 0)
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-lock-fill"></i> Today is closed, so salaries cannot be paid until tomorrow (or until today is reopened).
+        <div class="alert alert-info d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>Today is closed. Salaries can still be paid: <strong>bank transfers</strong> are booked today, <strong>cash</strong> is booked on {{ $cashBookedOn->format('d M Y') }} so today's cash count stays correct.</div>
         </div>
     @endif
 
@@ -57,7 +58,7 @@
     <div class="card">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
             <span>{{ $month->format('F Y') }} salary sheet</span>
-            @if ($totals['pending_count'] > 0 && ! $todayIsClosed)
+            @if ($totals['pending_count'] > 0)
                 <form method="POST" action="{{ route('payroll.pay-all') }}" class="d-flex align-items-center gap-2" x-data="{ sure: false }">
                     @csrf
                     <input type="hidden" name="month" value="{{ $month->format('Y-m') }}">
@@ -153,8 +154,7 @@
                                     </form>
                                 @else
                                     <a href="{{ route('payroll.slips.edit', $slip) }}" class="btn btn-sm btn-outline-dark"><i class="bi bi-pencil me-1"></i>Adjust</a>
-                                    @unless ($todayIsClosed)
-                                        <div class="btn-group">
+                                    <div class="btn-group">
                                             <button type="button" class="btn btn-sm btn-warning dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"
                                                     data-bs-popper-config='{"strategy":"fixed"}'>Pay</button>
                                             <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2">
@@ -171,7 +171,7 @@
                                                 @endforeach
                                             </ul>
                                         </div>
-                                    @endunless
+                                    
                                 @endif
                             </td>
                         </tr>

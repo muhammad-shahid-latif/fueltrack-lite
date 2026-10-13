@@ -5,10 +5,10 @@
                   x-data="slipForm({
                       basic: {{ (float) $slip->basic_salary }},
                       days: {{ $slip->days_in_month }},
-                      absent: @js(old('absent_days', \App\Support\Format::number($slip->absent_days))),
-                      bonus: @js(old('bonus', \App\Support\Format::number($slip->bonus))),
-                      other: @js(old('other_deduction', \App\Support\Format::number($slip->other_deduction))),
-                      advance: @js(old('advance_deduction', \App\Support\Format::number($slip->advance_deduction))),
+                      absent: @js(old('absent_days', \App\Support\Format::input($slip->absent_days))),
+                      bonus: @js(old('bonus', \App\Support\Format::input($slip->bonus))),
+                      other: @js(old('other_deduction', \App\Support\Format::input($slip->other_deduction))),
+                      advance: @js(old('advance_deduction', \App\Support\Format::input($slip->advance_deduction))),
                   })"
                   @submit="submitting = true">
                 @csrf
