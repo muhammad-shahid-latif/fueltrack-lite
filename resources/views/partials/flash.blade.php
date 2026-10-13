@@ -1,19 +1,32 @@
-@foreach (['success' => 'check-circle-fill', 'warning' => 'exclamation-triangle-fill', 'danger' => 'x-octagon-fill'] as $type => $icon)
-    @if (session($type))
-        <div class="alert alert-{{ $type }} alert-dismissible fade show d-flex align-items-center gap-2" role="alert">
-            <i class="bi bi-{{ $icon }}"></i>
-            <div>{{ session($type) }}</div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-@endforeach
+{{--
+    Flash messages and page-level errors, shown as floating toasts so they stay
+    visible after an in-place (Turbo) update keeps the scroll position.
+--}}
+@php
+    $toasts = [];
 
-{{-- Errors that are not tied to a visible field: a locked day, a wrong system clock or a blocked change. --}}
-@foreach (['clock' => 'clock-history', 'business_date' => 'lock-fill', 'record' => 'exclamation-octagon-fill'] as $field => $icon)
-    @error($field)
-        <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-            <i class="bi bi-{{ $icon }}"></i>
-            <div>{{ $message }}</div>
+    foreach (['success', 'warning', 'danger'] as $type) {
+        if (session($type)) {
+            $toasts[] = [$type, session($type)];
+        }
+    }
+
+    // Errors that are not tied to a visible field: a locked day, a wrong system clock or a blocked change.
+    foreach (['clock', 'business_date', 'record'] as $field) {
+        if ($errors->has($field)) {
+            $toasts[] = ['danger', $errors->first($field)];
+        }
+    }
+
+    $icons = ['success' => 'check-circle-fill', 'warning' => 'exclamation-triangle-fill', 'danger' => 'x-octagon-fill'];
+@endphp
+
+<div id="toast-stack" class="toast-stack d-print-none" aria-live="polite">
+    @foreach ($toasts as [$type, $message])
+        <div class="app-toast app-toast-{{ $type }}" data-type="{{ $type }}" role="{{ $type === 'danger' ? 'alert' : 'status' }}">
+            <i class="bi bi-{{ $icons[$type] }}"></i>
+            <div class="flex-grow-1">{{ $message }}</div>
+            <button type="button" class="btn-close btn-close-sm" data-toast-close aria-label="Close"></button>
         </div>
-    @enderror
-@endforeach
+    @endforeach
+</div>

@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
     // Tanks: everyone sees levels and takes dips.
     Route::get('/tanks', [TankController::class, 'index'])->name('tanks.index');
     Route::get('/tanks/levels', [TankController::class, 'levels'])->name('tanks.levels');
+    Route::get('/tanks/{tank}/dips', [TankController::class, 'dips'])->name('tanks.dips.index');
     Route::post('/tanks/{tank}/dips', [TankController::class, 'dip'])->name('tanks.dips.store');
     Route::get('/stock/movements', StockMovementController::class)->name('stock.movements');
 

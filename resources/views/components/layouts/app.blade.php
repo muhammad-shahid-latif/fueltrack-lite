@@ -6,6 +6,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    {{-- Turbo: no snapshot cache (Alpine state must start fresh), keep scroll when a form returns to the same page. --}}
+    <meta name="turbo-cache-control" content="no-cache">
+    <meta name="turbo-refresh-scroll" content="preserve">
     <title>{{ $title ? $title.' · ' : '' }}{{ \App\Support\Brand::current()?->name ? \App\Support\Brand::current()->name.' · ' : '' }}{{ config('app.name') }}</title>
     @include('partials.fonts')
     @include('partials.brand-theme')
@@ -68,8 +71,6 @@
             </header>
 
             <main class="flex-grow-1 p-3 p-lg-4 app-main">
-                @include('partials.flash')
-
                 {{ $slot }}
             </main>
 
@@ -78,5 +79,7 @@
             </footer>
         </div>
     </div>
+
+    @include('partials.flash')
 </body>
 </html>

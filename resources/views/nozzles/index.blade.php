@@ -76,16 +76,20 @@
         function nozzleBoard(url, at) {
             return {
                 at,
+                timer: null,
 
                 init() {
-                    setInterval(() => this.refresh(url), 15000);
+                    this.timer = setInterval(() => document.hidden || this.refresh(url), 15000);
+                },
+
+                // Alpine calls this when Turbo swaps the page away.
+                destroy() {
+                    clearInterval(this.timer);
                 },
 
                 async refresh(url) {
                     try {
-                        const response = await fetch(url, { headers: { Accept: 'application/json' } });
-                        if (!response.ok) return;
-                        const data = await response.json();
+                        const data = await FT.http.get(url);
                         this.at = data.at;
 
                         data.nozzles.forEach((n) => {

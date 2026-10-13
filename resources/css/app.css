@@ -2307,3 +2307,100 @@ a.card:hover,
 }
 
 .tank-capacity-bar .share-bar { height: 10px; }
+
+/* ---------- Smooth navigation (Turbo) ---------- */
+.turbo-progress-bar {
+    height: 3px;
+    background: linear-gradient(90deg, var(--ft-amber-soft), var(--ft-amber), var(--ft-amber-deep));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--ft-amber) 60%, transparent);
+}
+
+/* A form that returns to the same page refreshes in place: no entrance animation. */
+body.is-refresh .app-main { animation: none; }
+
+form[aria-busy="true"] { cursor: progress; }
+
+/* ---------- Toasts ---------- */
+.toast-stack {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1090;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: min(400px, calc(100vw - 2rem));
+    pointer-events: none;
+}
+
+.app-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    background: #fff;
+    color: var(--ft-ink);
+    border-left: 5px solid var(--toast-accent, var(--ft-canopy-500));
+    box-shadow: 0 18px 40px -18px rgba(3, 31, 39, 0.55), 0 2px 6px rgba(3, 31, 39, 0.12);
+    font-size: 0.92rem;
+    pointer-events: auto;
+    animation: ft-toast-in 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.app-toast > .bi { font-size: 1.15rem; line-height: 1.2; color: var(--toast-accent); }
+.app-toast .btn-close { font-size: 0.65rem; margin-top: 0.2rem; }
+.app-toast-success { --toast-accent: #12a66a; }
+.app-toast-warning { --toast-accent: #e58e00; }
+.app-toast-danger { --toast-accent: #e0294f; }
+.app-toast-info { --toast-accent: var(--ft-canopy-500); }
+.app-toast.is-leaving { animation: ft-toast-out 0.22s ease-in both; }
+
+@keyframes ft-toast-in { from { opacity: 0; transform: translateX(24px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes ft-toast-out { to { opacity: 0; transform: translateX(24px); } }
+
+@media (max-width: 575.98px) {
+    .toast-stack { top: auto; bottom: 1rem; right: 1rem; }
+}
+
+/* ---------- Tank dip reading ---------- */
+.tank-dip-line {
+    margin-top: 0.25rem;
+    text-align: center;
+    font-size: 0.875em;
+    color: var(--ft-ink-soft);
+}
+
+/* Sits above the card's stretched link so it opens the popup instead of the tank page. */
+.tank-dip-btn { position: relative; z-index: 2; font-weight: 600; }
+
+.tank-card.just-updated { animation: ft-card-pulse 1.2s ease-out; }
+
+@keyframes ft-card-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ft-amber) 70%, transparent); }
+    100% { box-shadow: 0 0 0 18px transparent; }
+}
+
+.dip-modal .modal-content { border: 0; border-radius: 20px; box-shadow: 0 30px 70px -25px rgba(3, 31, 39, 0.6); }
+.dip-modal .modal-header, .dip-modal .modal-footer { border-color: var(--ft-line); }
+.dip-modal .led-value { font-size: 1.6rem; }
+.dip-modal .dip-input { font-family: var(--ft-font-display); font-weight: 700; font-size: 1.5rem; }
+.dip-modal .dip-refresh { color: rgba(255, 255, 255, 0.6); line-height: 1; }
+.dip-modal .dip-refresh:hover { color: var(--ft-led); }
+.dip-modal .dip-history th { font-size: 0.75rem; font-weight: 600; color: var(--ft-ink-soft); }
+
+.dip-verdict {
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--verdict-line, var(--ft-line));
+    background: var(--verdict-bg, #f6f9fa);
+    color: var(--verdict-ink, var(--ft-ink));
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.dip-verdict.is-match { --verdict-bg: #e8f8f0; --verdict-line: #9fdcbf; --verdict-ink: #0b6b44; }
+.dip-verdict.is-gain { --verdict-bg: #eaf2ff; --verdict-line: #a9c4f5; --verdict-ink: #1d4fb0; }
+.dip-verdict.is-loss { --verdict-bg: #fdecef; --verdict-line: #f3b4c0; --verdict-ink: #a3182f; }
+
+.spin { display: inline-block; animation: ft-spin 0.8s linear infinite; }
+@keyframes ft-spin { to { transform: rotate(360deg); } }

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\NormalizeNumberInput;
+use App\Http\Middleware\RecognizeTurboPrefetch;
 use App\Http\Middleware\ResolveBrand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [ResolveBrand::class, NormalizeNumberInput::class]);
+        $middleware->web(prepend: [RecognizeTurboPrefetch::class], append: [ResolveBrand::class, NormalizeNumberInput::class]);
 
         $middleware->alias([
             'role' => EnsureUserHasRole::class,

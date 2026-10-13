@@ -2,5 +2,5 @@
 @php($brand = \App\Support\Brand::current())
 <meta name="theme-color" content="{{ $brand?->color('surface-800') ?? '#05303b' }}">
 @if ($brand)
-    <style>html:root { {!! $brand->cssVariables() !!} }</style>
+    <style data-turbo-track="dynamic">html:root { {!! $brand->cssVariables() !!} }</style>
 @endif

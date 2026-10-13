@@ -68,6 +68,7 @@ class TankService
             ->keyBy('tank_id');
 
         $lastDips = StockAdjustment::query()
+            ->with('recorder:id,name')
             ->whereIn('tank_id', $ids)
             ->where('type', StockAdjustmentType::Dip->value)
             ->whereDate('business_date', '<=', $date)
@@ -193,6 +194,22 @@ class TankService
             'adjusted' => round($rows->whereNotIn('type', ['delivery', 'sales'])->sum('quantity'), 2),
             'rows' => $rows,
         ];
+    }
+
+    /**
+     * The latest dip readings of a tank, newest first.
+     *
+     * @return Collection<int, StockAdjustment>
+     */
+    public function recentDips(Tank $tank, int $limit = 5): Collection
+    {
+        return StockAdjustment::query()
+            ->with('recorder:id,name')
+            ->where('tank_id', $tank->id)
+            ->where('type', StockAdjustmentType::Dip->value)
+            ->latest('id')
+            ->limit($limit)
+            ->get();
     }
 
     /**

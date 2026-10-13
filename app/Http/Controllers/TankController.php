@@ -9,6 +9,7 @@ use App\Http\Requests\TransferFuelRequest;
 use App\Models\FuelProduct;
 use App\Models\StockAdjustment;
 use App\Models\Tank;
+use App\Services\DailyClosingService;
 use App\Services\FuelStockService;
 use App\Services\TankService;
 use App\Support\BusinessClock;
@@ -20,6 +21,9 @@ use Illuminate\View\View;
 
 class TankController extends Controller
 {
+    /** Liters below which a dip counts as matching the system stock. */
+    private const DIP_MATCH_TOLERANCE = 0.005;
+
     public function index(TankService $tanks): View
     {
         $levels = $tanks->levels();
@@ -43,16 +47,7 @@ class TankController extends Controller
     {
         return response()->json([
             'at' => BusinessClock::now()->format('h:i:s A'),
-            'tanks' => $tanks->levels()->map(fn (array $row) => [
-                'id' => $row['tank']->id,
-                'level' => $row['level'],
-                'level_label' => Format::liters($row['level']),
-                'percent' => $row['percent'],
-                'ullage_label' => Format::liters($row['ullage']),
-                'status' => $row['status'],
-                'sold_today_label' => Format::liters($row['sold_today']),
-                'received_today_label' => Format::liters($row['received_today']),
-            ])->values(),
+            'tanks' => $tanks->levels()->map(fn (array $row) => $this->levelPayload($row))->values(),
         ]);
     }
 
@@ -149,16 +144,58 @@ class TankController extends Controller
         return redirect()->route('tanks.index')->with('success', "{$tank->name} removed.");
     }
 
-    public function dip(RecordDipRequest $request, Tank $tank, TankService $tanks): RedirectResponse
+    /**
+     * Live book stock and recent dips for the dip-reading popup.
+     */
+    public function dips(Tank $tank, TankService $tanks, DailyClosingService $closings): JsonResponse
+    {
+        $tank->load('fuelProduct');
+        $book = $tanks->level($tank);
+
+        return response()->json([
+            'tank' => [
+                'id' => $tank->id,
+                'name' => $tank->name,
+                'fuel' => $tank->fuelProduct->name,
+                'capacity' => (float) $tank->capacity,
+                'capacity_label' => Format::liters($tank->capacity),
+            ],
+            'book' => $book,
+            'book_label' => Format::liters($book),
+            'at' => BusinessClock::now()->format('h:i:s A'),
+            'day_closed' => $closings->isClosed(BusinessClock::today()),
+            'history' => $tanks->recentDips($tank)->map(fn (StockAdjustment $dip) => $this->dipPayload($dip))->values(),
+        ]);
+    }
+
+    public function dip(RecordDipRequest $request, Tank $tank, TankService $tanks): RedirectResponse|JsonResponse
     {
         $dip = $tanks->recordDip($tank, (float) $request->input('dip_reading'), $request->user(), $request->input('notes'));
+        $dip->load('recorder:id,name');
         $variance = (float) $dip->quantity;
+        $matches = abs($variance) < self::DIP_MATCH_TOLERANCE;
 
-        $message = abs($variance) < 0.005
-            ? "Dip matches the book stock of {$tank->name} exactly."
-            : sprintf('Dip saved. %s %s of %s; book stock corrected to %s.', $variance > 0 ? 'Gain' : 'Loss', Format::liters(abs($variance)), $tank->name, Format::liters($dip->dip_reading));
+        $message = $matches
+            ? sprintf('Readings match. %s dip equals the system stock of %s.', $tank->name, Format::liters($dip->dip_reading))
+            : sprintf(
+                '%s: dip %s vs system %s. %s of %s; system stock corrected to the dip.',
+                $tank->name,
+                Format::liters($dip->dip_reading),
+                Format::liters($dip->book_stock),
+                $variance > 0 ? 'Gain' : 'Loss',
+                Format::liters(abs($variance)),
+            );
 
-        return back()->with(abs($variance) < 0.005 ? 'success' : 'warning', $message);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => $this->dipStatus($variance),
+                'message' => $message,
+                'dip' => $this->dipPayload($dip),
+                'tank' => $this->levelPayload($tanks->levels()->firstWhere('tank.id', $tank->id)),
+            ], 201);
+        }
+
+        return back()->with($matches ? 'success' : 'warning', $message);
     }
 
     public function transfer(TransferFuelRequest $request, Tank $tank, TankService $tanks): RedirectResponse
@@ -170,5 +207,58 @@ class TankController extends Controller
             ->route('tanks.show', $tank)
             ->with('success', sprintf('%s moved from %s to %s (%s).', Format::liters($request->input('quantity')), $tank->name, $to->name, $reference))
             ->with('transferred', true);
+    }
+
+    /**
+     * One tank card's live figures, shared by polling and the dip popup.
+     *
+     * @param  array<string, mixed>  $row  A row from TankService::levels()
+     * @return array<string, mixed>
+     */
+    private function levelPayload(array $row): array
+    {
+        return [
+            'id' => $row['tank']->id,
+            'level' => $row['level'],
+            'level_label' => Format::liters($row['level']),
+            'percent' => $row['percent'],
+            'ullage_label' => Format::liters($row['ullage']),
+            'status' => $row['status'],
+            'sold_today_label' => Format::liters($row['sold_today']),
+            'received_today_label' => Format::liters($row['received_today']),
+            'days_cover_label' => $row['days_cover'] !== null ? number_format($row['days_cover'], 1).' days' : '—',
+            'last_dip' => $row['last_dip'] ? $this->dipPayload($row['last_dip']) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dipPayload(StockAdjustment $dip): array
+    {
+        $variance = (float) $dip->quantity;
+        $book = (float) $dip->book_stock;
+
+        return [
+            'id' => $dip->id,
+            'date_label' => $dip->business_date->format('d M'),
+            'time_label' => $dip->created_at?->format('h:i A'),
+            'measured_label' => Format::liters($dip->dip_reading),
+            'book_label' => Format::liters($book),
+            'variance' => $variance,
+            'variance_label' => ($variance > 0 ? '+' : '').Format::liters($variance),
+            'variance_percent' => $book > 0 ? round($variance / $book * 100, 2) : null,
+            'status' => $this->dipStatus($variance),
+            'by' => $dip->recorder?->name,
+        ];
+    }
+
+    private function dipStatus(float $variance): string
+    {
+        return match (true) {
+            abs($variance) < self::DIP_MATCH_TOLERANCE => 'match',
+            $variance > 0 => 'gain',
+            default => 'loss',
+        };
     }
 }
