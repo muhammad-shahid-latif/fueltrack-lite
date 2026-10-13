@@ -15,9 +15,10 @@ class PumpController extends Controller
     {
         return view('pumps.index', [
             'pumps' => Pump::query()
-                ->with(['nozzles' => fn ($query) => $query->with(['fuelProduct', 'tank'])->withCount('meterReadings')])
-                ->orderBy('name')
-                ->get(),
+                ->with(['nozzles' => fn ($query) => $query->with(['fuelProduct', 'tank'])->withCount('meterReadings')->orderBy('number')])
+                ->get()
+                ->sort(fn (Pump $a, Pump $b) => Pump::compareNames($a->name, $b->name))
+                ->values(),
         ]);
     }
 

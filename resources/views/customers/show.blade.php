@@ -18,7 +18,7 @@
 
     <section class="hero-3d mb-4" data-tilt="1">
         <div class="row g-3 align-items-center">
-            <div class="col-lg-4 d-flex gap-3 align-items-center">
+            <div class="col-lg-3 d-flex gap-3 align-items-center">
                 <span class="party-avatar is-customer" style="width: 64px; height: 64px; font-size: 1.4rem;">{{ $customer->initials() }}</span>
                 <div>
                     <div class="hero-label">Outstanding balance</div>
@@ -26,9 +26,10 @@
                     <div class="hero-sub">{{ $customer->phone ?? '' }} {{ $customer->address ? '· '.$customer->address : '' }}</div>
                 </div>
             </div>
-            <div class="col-6 col-lg-2"><div class="hero-tile"><div class="hero-label">Credit given</div><div class="hero-value is-white" style="font-size: 1.3rem;">@money(round($account['credited']))</div></div></div>
-            <div class="col-6 col-lg-2"><div class="hero-tile"><div class="hero-label">Received</div><div class="hero-value is-white" style="font-size: 1.3rem;">@money(round($account['received']))</div></div></div>
-            <div class="col-12 col-lg-4">
+            <div class="col-4 col-lg-2"><div class="hero-tile"><div class="hero-label">Opening balance</div><div class="hero-value is-white" style="font-size: 1.3rem;">@money(round($customer->opening_balance))</div></div></div>
+            <div class="col-4 col-lg-2"><div class="hero-tile"><div class="hero-label">+ Credit given</div><div class="hero-value is-white" style="font-size: 1.3rem;">@money(round($account['credited']))</div></div></div>
+            <div class="col-4 col-lg-2"><div class="hero-tile"><div class="hero-label">− Received</div><div class="hero-value is-white" style="font-size: 1.3rem;">@money(round($account['received']))</div></div></div>
+            <div class="col-12 col-lg-3">
                 <div class="hero-tile">
                     <div class="d-flex justify-content-between hero-label mb-2">
                         <span>Credit limit</span>
@@ -42,6 +43,9 @@
                     @endif
                 </div>
             </div>
+        </div>
+        <div class="hero-sub mt-3 ft-num">
+            <i class="bi bi-calculator me-1"></i>Opening @money($customer->opening_balance) + Credit @money($account['credited']) − Received @money($account['received']) = <strong class="text-white">Outstanding @money($account['balance'])</strong>
         </div>
     </section>
 

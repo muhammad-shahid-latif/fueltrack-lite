@@ -75,7 +75,7 @@ test('fuel moves between tanks of the same product only', function () {
         ->and($this->tanks->level($second))->toBe(1500.0)
         ->and($this->stock->currentStock($this->product, today()))->toBe(5000.0);
 
-    $other = Tank::factory()->create();
+    $other = Tank::factory()->for(FuelProduct::factory()->state(['name' => 'Kerosene', 'code' => 'kerosene']))->create();
     $this->tanks->transfer($this->tank, $other, 100);
 })->throws(ValidationException::class, 'same product');
 

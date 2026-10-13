@@ -43,4 +43,33 @@ class Pump extends Model
     {
         return 'Pump '.$this->name;
     }
+
+    /**
+     * Natural, case-insensitive comparison so "Machine 2" sorts before "Machine 10"
+     * and stray spaces never change the order.
+     */
+    public static function compareNames(string $a, string $b): int
+    {
+        $partsA = preg_split('/(\d+)/', mb_strtolower(trim($a)), -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+        $partsB = preg_split('/(\d+)/', mb_strtolower(trim($b)), -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+        foreach ($partsA as $i => $partA) {
+            if (! isset($partsB[$i])) {
+                return 1;
+            }
+
+            $partB = $partsB[$i];
+
+            // Numbers compare by value, so "04" equals 4 and comes before 10.
+            $result = ctype_digit($partA) && ctype_digit($partB)
+                ? (int) $partA <=> (int) $partB
+                : strcmp(trim($partA), trim($partB));
+
+            if ($result !== 0) {
+                return $result;
+            }
+        }
+
+        return count($partsA) <=> count($partsB);
+    }
 }

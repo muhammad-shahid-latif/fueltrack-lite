@@ -42,7 +42,15 @@ class SupplierService
         $date = Carbon::parse($date ?? BusinessClock::today())->toDateString();
 
         return DB::transaction(function () use ($supplier, $amount, $method, $recordedBy, $reference, $notes, $date) {
-            $this->closings->assertOpen($date);
+            // Cash leaves the drawer, so it needs an open day. Bank and cheque
+            // payments do not change the cash count and are allowed any time.
+            BusinessClock::assertTrustworthy();
+
+            if ($method === PaymentMethod::Cash && $this->closings->isClosed($date)) {
+                $message = 'The business day '.Carbon::parse($date)->format('d M Y').' is closed, so no cash can leave the drawer. Pay by bank or cheque, or record the cash payment tomorrow.';
+
+                throw ValidationException::withMessages(['amount' => $message, 'paid_now' => $message]);
+            }
             $supplier = Supplier::query()->lockForUpdate()->findOrFail($supplier->id);
 
             $balance = $this->balance($supplier);

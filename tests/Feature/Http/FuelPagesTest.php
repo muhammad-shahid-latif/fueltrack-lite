@@ -55,12 +55,13 @@ test('purchases are validated', function () {
         ->assertSessionHasErrors(['quantity', 'rate']);
 });
 
-test('purchases cannot be recorded once today is closed', function () {
+test('deliveries can still be received after today is closed', function () {
     app(DailyClosingService::class)->close(today(), openingCash: 0, actualCash: 0);
 
     $this->actingAs($this->staff)
-        ->post(route('purchases.store'), ['fuel_product_id' => $this->petrol->id, 'quantity' => '1000', 'rate' => '270'])
-        ->assertSessionHasErrors('business_date');
+        ->post(route('purchases.store'), ['fuel_product_id' => $this->petrol->id, 'tank_id' => $this->tank->id, 'quantity' => '1000', 'rate' => '270'])
+        ->assertRedirect(route('purchases.index'))
+        ->assertSessionHasNoErrors();
 });
 
 test('purchases page lists recent deliveries', function () {

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Nozzle extends Model
 {
@@ -68,6 +69,20 @@ class Nozzle extends Model
     public function meterReadings(): HasMany
     {
         return $this->hasMany(MeterReading::class);
+    }
+
+    /**
+     * Machine order as people read it: "Machine 2" before "Machine 10",
+     * then nozzle 1, 2, … Requires the pump relation.
+     *
+     * @param  Collection<int, self>  $nozzles
+     * @return Collection<int, self>
+     */
+    public static function inDisplayOrder(Collection $nozzles): Collection
+    {
+        return $nozzles
+            ->sort(fn (self $a, self $b) => Pump::compareNames($a->pump->name, $b->pump->name) ?: $a->number <=> $b->number)
+            ->values();
     }
 
     /**

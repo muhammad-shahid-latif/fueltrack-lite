@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Nozzle;
+use App\Models\Pump;
 use App\Models\User;
 use App\Services\NozzleReportService;
 use App\Services\PayrollReportService;
@@ -41,4 +42,14 @@ test('the payroll report covers slips, advances and the audit trail', function (
         ->assertOk()
         ->assertSee('Salary transactions')
         ->assertSee('Payroll audit trail');
+});
+
+test('machines are listed in natural order, then by nozzle number', function () {
+    Pump::query()->where('name', 'Pump 01')->update(['name' => 'Machine 10']);
+    Pump::query()->where('name', 'Pump 02')->update(['name' => ' Machine 04']);
+    Pump::query()->where('name', 'Pump 03')->update(['name' => 'Machine 2']);
+
+    $labels = app(NozzleReportService::class)->live()->map(fn (array $row) => trim($row['nozzle']->pump->name).' N'.$row['nozzle']->number)->all();
+
+    expect($labels)->toBe(['Machine 2 N1', 'Machine 2 N2', 'Machine 04 N1', 'Machine 04 N2', 'Machine 10 N1', 'Machine 10 N2']);
 });

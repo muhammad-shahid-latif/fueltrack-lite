@@ -10,6 +10,7 @@ use App\Models\StockAdjustment;
 use App\Models\Supplier;
 use App\Models\Tank;
 use App\Models\User;
+use App\Support\BusinessClock;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -55,7 +56,10 @@ class FuelStockService
         $date = Carbon::parse($date)->toDateString();
 
         return DB::transaction(function () use ($product, $date, $quantity, $rate, $supplierName, $invoiceNumber, $recordedBy, $notes, $tank, $supplier, $dueDate, $paidNow, $paymentMethod) {
-            $this->closings->assertOpen($date);
+            // A delivery is stock, not part of the cash count, so it may be
+            // received after the day is closed. Only cash paid on the spot
+            // touches the drawer; SupplierService guards that case.
+            BusinessClock::assertTrustworthy();
 
             $tank = $this->resolveTank($product, $tank, $quantity, $date);
             $quantity = round($quantity, 2);

@@ -50,14 +50,12 @@ class MeterReadingController extends Controller
 
     public function create(Request $request, DailyClosingService $closings): View
     {
-        $nozzles = Nozzle::query()
+        $nozzles = Nozzle::inDisplayOrder(Nozzle::query()
             ->with(['pump', 'fuelProduct'])
             ->where('is_active', true)
             ->whereHas('pump', fn (Builder $query) => $query->where('is_active', true))
             ->whereHas('fuelProduct', fn (Builder $query) => $query->fuel()->active())
-            ->orderBy('pump_id')
-            ->orderBy('number')
-            ->get();
+            ->get());
 
         return view('meter-readings.create', [
             'nozzles' => $nozzles->map(fn (Nozzle $nozzle) => [

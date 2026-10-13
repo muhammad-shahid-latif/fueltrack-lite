@@ -23,13 +23,7 @@ class NozzleReportService
     {
         $date = Carbon::parse($date ?? BusinessClock::today())->toDateString();
 
-        $nozzles = Nozzle::query()
-            ->with(['pump', 'fuelProduct', 'tank'])
-            ->join('pumps', 'pumps.id', '=', 'nozzles.pump_id')
-            ->orderBy('pumps.name')
-            ->orderBy('nozzles.number')
-            ->select('nozzles.*')
-            ->get();
+        $nozzles = Nozzle::inDisplayOrder(Nozzle::query()->with(['pump', 'fuelProduct', 'tank'])->get());
 
         $readings = MeterReading::query()
             ->with(['sale', 'recorder'])
@@ -85,13 +79,7 @@ class NozzleReportService
             $days[] = $day->copy();
         }
 
-        $nozzles = Nozzle::query()
-            ->with(['pump', 'fuelProduct'])
-            ->join('pumps', 'pumps.id', '=', 'nozzles.pump_id')
-            ->orderBy('pumps.name')
-            ->orderBy('nozzles.number')
-            ->select('nozzles.*')
-            ->get();
+        $nozzles = Nozzle::inDisplayOrder(Nozzle::query()->with(['pump', 'fuelProduct'])->get());
 
         $grand = (float) $cells->flatten()->sum('liters');
         $dailyTotals = array_fill_keys(array_map(fn (Carbon $day) => $day->toDateString(), $days), 0.0);

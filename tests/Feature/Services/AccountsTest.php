@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\FuelProduct;
 use App\Models\Supplier;
 use App\Services\CreditService;
+use App\Services\DailyClosingService;
 use App\Services\FuelStockService;
 use App\Services\SaleService;
 use App\Services\SupplierService;
@@ -91,3 +92,15 @@ test('a counter item sold on credit lands in the debt register and leaves with i
     $sales->deleteCounterSale($sale);
     expect($this->credits->balance($customer))->toBe(0.0);
 });
+
+test('a delivery can be received after the day is closed, but cash cannot leave a closed drawer', function () {
+    app(DailyClosingService::class)->close(today(), openingCash: 0, actualCash: 0);
+    $supplier = Supplier::create(['name' => 'Depot', 'payment_terms_days' => 7]);
+
+    $purchase = $this->stock->recordPurchase($this->diesel, today(), 1000, 280, supplier: $supplier, paidNow: 100000, paymentMethod: PaymentMethod::Bank);
+
+    expect($purchase->exists)->toBeTrue()
+        ->and($this->suppliers->balance($supplier))->toBe(180000.0);
+
+    $this->stock->recordPurchase($this->diesel, today(), 500, 280, supplier: $supplier, paidNow: 1000, paymentMethod: PaymentMethod::Cash);
+})->throws(ValidationException::class, 'no cash can leave the drawer');

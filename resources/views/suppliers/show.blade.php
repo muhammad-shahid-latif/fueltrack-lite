@@ -24,6 +24,9 @@
             <div class="col-6 col-lg-2"><div class="hero-tile"><div class="hero-label">Overdue</div><div @class(['hero-value', 'is-white' => $account['overdue'] <= 0]) style="font-size: 1.3rem;">@money(round($account['overdue']))</div></div></div>
             <div class="col-6 col-lg-2"><div class="hero-tile"><div class="hero-label">Next due</div><div class="hero-value is-white" style="font-size: 1.3rem;">{{ $account['next_due']?->format('d M') ?? '—' }}</div></div></div>
         </div>
+        <div class="hero-sub mt-3 ft-num">
+            <i class="bi bi-calculator me-1"></i>Opening @money($supplier->opening_balance) + Purchased @money($account['purchased']) − Paid @money($account['paid']) = <strong class="text-white">Payable @money($account['balance'])</strong>
+        </div>
     </section>
 
     <div class="row g-4">
