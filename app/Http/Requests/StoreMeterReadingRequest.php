@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Shift;
+use App\Support\ShiftSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class StoreMeterReadingRequest extends FormRequest
     {
         return [
             'nozzle_id' => ['required', 'integer', Rule::exists('nozzles', 'id')->where('is_active', true)],
-            'shift' => ['required', Rule::enum(Shift::class)],
+            'shift' => ['required', Rule::enum(Shift::class)->only(ShiftSchedule::active())],
             'opening_meter' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
             'closing_meter' => ['required', 'numeric', 'gt:opening_meter', 'max:999999999999.99'],
             'notes' => ['nullable', 'string', 'max:500'],

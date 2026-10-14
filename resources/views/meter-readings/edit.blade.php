@@ -35,7 +35,7 @@
                                 <span class="form-label d-block">Shift</span>
                                 <div class="row g-2 shift-picker" role="radiogroup" aria-label="Shift">
                                     @foreach ($shifts as $shift)
-                                        <div class="col-4">
+                                        <div class="col-{{ intdiv(12, max(1, count($shifts))) }}">
                                             <input type="radio" class="btn-check" name="shift" id="shift_{{ $shift->value }}" value="{{ $shift->value }}"
                                                    @checked(old('shift', $reading->shift->value) === $shift->value)>
                                             <label class="btn btn-outline-dark w-100" for="shift_{{ $shift->value }}">
@@ -91,15 +91,15 @@
                             <div class="col-12">
                                 <div class="calc-panel">
                                     <div class="row text-center g-2">
-                                        <div class="col-4">
+                                        <div class="col-{{ intdiv(12, max(1, count($shifts))) }}">
                                             <div class="calc-label">Liters sold</div>
                                             <div class="calc-value" x-text="liters > 0 ? formatNumber(liters) + ' L' : '—'"></div>
                                         </div>
-                                        <div class="col-4">
+                                        <div class="col-{{ intdiv(12, max(1, count($shifts))) }}">
                                             <div class="calc-label">Rate sold at</div>
                                             <div class="calc-value" x-text="'Rs. ' + formatNumber(rate)"></div>
                                         </div>
-                                        <div class="col-4">
+                                        <div class="col-{{ intdiv(12, max(1, count($shifts))) }}">
                                             <div class="calc-label">Sales amount</div>
                                             <div class="calc-value is-total" x-text="liters > 0 ? 'Rs. ' + formatNumber(amount) : '—'"></div>
                                         </div>

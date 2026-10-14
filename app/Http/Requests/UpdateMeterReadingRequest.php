@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\Shift;
+use App\Support\ShiftSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +23,8 @@ class UpdateMeterReadingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'shift' => ['required', Rule::enum(Shift::class)],
+            // Active shifts, plus the reading's own shift if it was dropped from the plan later.
+            'shift' => ['required', Rule::enum(Shift::class)->only([...ShiftSchedule::active(), $this->route('meter_reading')->shift])],
             'opening_meter' => ['required', 'numeric', 'min:0', 'max:999999999999.99'],
             'closing_meter' => ['required', 'numeric', 'gt:opening_meter', 'max:999999999999.99'],
             'notes' => ['nullable', 'string', 'max:500'],

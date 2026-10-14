@@ -35,8 +35,10 @@ test('role helpers resolve enum and string roles', function () {
 });
 
 test('settings link is only shown to owners', function () {
+    // Labels of sidebar entries and of the pages inside each section.
     $labels = fn (User $user) => collect(Navigation::for($user))
-        ->flatMap(fn ($group) => array_column($group['items'], 'label'));
+        ->flatMap(fn ($group) => $group['items'])
+        ->flatMap(fn ($item) => [$item['label'], ...array_column($item['tabs'] ?? [], 'label')]);
 
     expect($labels(User::factory()->owner()->make()))->toContain('Settings')
         ->and($labels(User::factory()->staff()->make()))->not->toContain('Settings');

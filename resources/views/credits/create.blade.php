@@ -57,6 +57,8 @@
                                 </div>
                                 @error('amount') <div class="col-12"><div class="alert alert-danger mb-0">{{ $message }}</div></div> @enderror
 
+                                <div class="col-12">@include('credits.partials.owed-split')</div>
+
                                 <div class="col-12">
                                     <div class="calc-panel d-flex justify-content-between align-items-center">
                                         <span class="calc-label fs-6">Added to the account</span>

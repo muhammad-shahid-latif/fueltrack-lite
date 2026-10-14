@@ -25,6 +25,8 @@ class StoreCustomerCreditRequest extends FormRequest
             'customer_id' => [$this->route('customer') ? 'prohibited' : 'required', 'integer', Rule::exists('customers', 'id')->where('is_active', true)],
             'fuel_product_id' => ['nullable', 'integer', Rule::exists('fuel_products', 'id')->where('type', ProductType::Fuel->value)->where('is_active', true)],
             'quantity' => ['required_with:fuel_product_id', 'nullable', 'numeric', 'gt:0', 'max:1000000'],
+            // Only when part of the slip is given later; empty means all given now.
+            'given_quantity' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
             'amount' => ['required_without:fuel_product_id', 'nullable', 'numeric', 'gt:0', 'max:100000000'],
             'vehicle_number' => ['nullable', 'string', 'max:30'],
             'slip_number' => ['nullable', 'string', 'max:30'],
@@ -37,6 +39,6 @@ class StoreCustomerCreditRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['fuel_product_id' => 'fuel', 'customer_id' => 'customer'];
+        return ['fuel_product_id' => 'fuel', 'customer_id' => 'customer', 'given_quantity' => 'liters given now'];
     }
 }

@@ -15,6 +15,7 @@ use App\Http\Controllers\FuelStockController;
 use App\Http\Controllers\MeterReadingController;
 use App\Http\Controllers\NozzleBoardController;
 use App\Http\Controllers\NozzleController;
+use App\Http\Controllers\OwedFuelController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfitLossController;
 use App\Http\Controllers\PumpController;
@@ -22,6 +23,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalaryAdvanceController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ShiftSettingController;
+use App\Http\Controllers\StaffAccessController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TankController;
@@ -38,7 +41,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])->name('login.store');
 });
 
-Route::middleware('auth')->group(function () {
+// staff.access: modules the owner switched off for the manager (Setup → Manager access).
+Route::middleware(['auth', 'staff.access'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     // Operations
@@ -51,12 +55,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/nozzles', [NozzleBoardController::class, 'index'])->name('nozzles.index');
     Route::get('/nozzles/live', [NozzleBoardController::class, 'live'])->name('nozzles.live');
 
-    // Debt register: staff record credit sales and receive payments.
+    // Khata register: staff record credit sales and receive payments.
     Route::get('/credits', [CreditController::class, 'index'])->name('credits.index');
     Route::get('/credits/create', [CreditController::class, 'create'])->name('credits.create');
     Route::post('/credits', [CreditController::class, 'store'])->name('credits.store');
     Route::post('/customers/{customer}/credits', [CreditController::class, 'storeForCustomer'])->name('customers.credits.store');
     Route::post('/customers/{customer}/payments', [CreditController::class, 'receive'])->name('customers.payments.store');
+    Route::post('/credits/{credit}/owed-fuel', [OwedFuelController::class, 'store'])->name('credits.owed.store');
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
 
     // Tanks: everyone sees levels and takes dips.
@@ -71,6 +76,10 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:owner')->group(function () {
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::get('/settings/shifts', [ShiftSettingController::class, 'edit'])->name('shifts.edit');
+        Route::put('/settings/shifts', [ShiftSettingController::class, 'update'])->name('shifts.update');
+        Route::get('/settings/manager-access', [StaffAccessController::class, 'edit'])->name('access.edit');
+        Route::put('/settings/manager-access', [StaffAccessController::class, 'update'])->name('access.update');
         Route::resource('fuel-products', FuelProductController::class)->except(['index', 'show'])->parameters(['fuel-products' => 'fuelProduct']);
         Route::put('/fuel-products/{fuelProduct}/price', [FuelProductController::class, 'updatePrice'])->name('fuel-products.price');
 
@@ -119,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('customers', CustomerController::class)->except(['index', 'show']);
         Route::delete('/credits/{credit}', [CreditController::class, 'destroy'])->name('credits.destroy');
         Route::delete('/customer-payments/{payment}', [CreditController::class, 'destroyPayment'])->name('customer-payments.destroy');
+        Route::delete('/owed-fuel/{delivery}', [OwedFuelController::class, 'destroy'])->name('owed-fuel.destroy');
 
         Route::resource('pumps', PumpController::class)->except(['index', 'show']);
         Route::resource('pumps.nozzles', NozzleController::class)->only(['store', 'update', 'destroy']);

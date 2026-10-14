@@ -41,6 +41,14 @@ class Customer extends Model
     }
 
     /**
+     * @return HasMany<OwedFuelDelivery, $this>
+     */
+    public function owedDeliveries(): HasMany
+    {
+        return $this->hasMany(OwedFuelDelivery::class);
+    }
+
+    /**
      * @return HasMany<CustomerCredit, $this>
      */
     public function credits(): HasMany

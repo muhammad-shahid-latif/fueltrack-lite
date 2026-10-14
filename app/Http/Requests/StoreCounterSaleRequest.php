@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\ProductType;
+use App\Support\StaffAccess;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,8 @@ class StoreCounterSaleRequest extends FormRequest
                     ->whereNot('type', ProductType::Fuel->value),
             ],
             'quantity' => ['required', 'numeric', 'gt:0', 'max:100000'],
-            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('is_active', true)],
+            // Selling on credit is part of the Khata register, which the owner may switch off for the manager.
+            'customer_id' => [StaffAccess::can($this->user(), 'khata') ? 'nullable' : 'prohibited', 'integer', Rule::exists('customers', 'id')->where('is_active', true)],
             'vehicle_number' => ['nullable', 'string', 'max:30'],
             'notes' => ['nullable', 'string', 'max:500'],
         ];

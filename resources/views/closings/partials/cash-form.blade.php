@@ -2,7 +2,7 @@
           x-data="closingForm({
               totalSales: {{ $summary['total_sales'] }},
               cashExpenses: {{ $summary['cash_expenses'] }},
-              creditSales: {{ $summary['credit_sales'] }},
+              creditSales: {{ $summary['credit_dispensed'] }},
               receipts: {{ $summary['customer_receipts'] }},
               supplierCash: {{ $summary['supplier_payments'] }},
               openingCash: @js(old('opening_cash', $values['opening_cash'])),
@@ -49,18 +49,28 @@
                             <div class="col-sm-6">
                                 <span class="form-label d-block">Credit sales</span>
                                 <a href="{{ route('credits.index', ['from' => $date->toDateString(), 'to' => $date->toDateString()]) }}"
-                                   class="form-control d-flex justify-content-between align-items-center text-decoration-none bg-body-tertiary" title="From the debt register">
+                                   class="form-control d-flex justify-content-between align-items-center text-decoration-none bg-body-tertiary" title="From the Khata register">
                                     <span class="ft-num fw-semibold text-body">@money($summary['credit_sales'])</span>
                                     <i class="bi bi-journal-bookmark text-secondary"></i>
                                 </a>
-                                <div class="form-text">From the debt register.</div>
+                                <div class="form-text">Billed in the Khata register.</div>
                             </div>
+                            @if ($summary['owed_fuel_billed'] > 0 || $summary['owed_fuel_given'] > 0)
+                                <div class="col-12">
+                                    @include('closings.partials.owed-explainer', [
+                                        'credit' => $summary['credit_sales'],
+                                        'billed' => $summary['owed_fuel_billed'],
+                                        'given' => $summary['owed_fuel_given'],
+                                        'liters' => $summary['owed_liters'],
+                                    ])
+                                </div>
+                            @endif
                             <div class="col-12">
                                 <div class="d-flex justify-content-between bg-body-tertiary rounded p-2">
                                     <span class="text-secondary">Cash sales</span>
                                     <span class="fw-bold" :class="cashSales < 0 && 'text-danger'" x-text="money(cashSales)"></span>
                                 </div>
-                                <div class="small text-danger mt-1" x-show="cashSales < 0" x-cloak>Card + credit cannot exceed total sales.</div>
+                                <div class="small text-danger mt-1" x-show="cashSales < 0" x-cloak>Card + credit fuel given cannot exceed total sales.</div>
                             </div>
                         </div>
                     </div>

@@ -11,8 +11,9 @@
         }
     }
 
-    // Errors that are not tied to a visible field: a locked day, a wrong system clock or a blocked change.
-    foreach (['clock', 'business_date', 'record'] as $field) {
+    // Errors that are not tied to a visible field: a locked day, a wrong system clock, a blocked change
+    // or the owed-fuel popup (closed again after the page refreshes).
+    foreach (['clock', 'business_date', 'record', 'give_quantity'] as $field) {
         if ($errors->has($field)) {
             $toasts[] = ['danger', $errors->first($field)];
         }

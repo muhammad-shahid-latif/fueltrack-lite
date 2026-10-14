@@ -1,5 +1,10 @@
 <x-layouts.app title="Dashboard" :subtitle="\App\Support\Station::name().', '.now()->format('l d F Y')">
     @php
+        // Owner choices in Setup → Manager access.
+        $showMoney = \App\Support\StaffAccess::can(auth()->user(), 'dashboard_money');
+        $showTanks = \App\Support\StaffAccess::can(auth()->user(), 'tanks');
+        $canOpen = fn (string $route) => \App\Support\StaffAccess::allowsRoute(auth()->user(), $route);
+        $showClosings = $showMoney && \App\Support\StaffAccess::can(auth()->user(), 'closings');
         $lowStock = $stock->where('is_low', true);
         $fuelStock = $stock->filter(fn ($row) => $row['product']->isMetered());
         $itemStock = $stock->reject(fn ($row) => $row['product']->isMetered());
@@ -11,10 +16,16 @@
             @if ($todayClosing)
                 <a href="{{ route('closings.show', $todayClosing) }}" class="btn btn-light"><i class="bi bi-lock-fill me-1"></i> Day closed</a>
             @else
-                <a href="{{ route('meter-readings.create') }}" class="btn btn-warning"><i class="bi bi-plus-lg me-1"></i> New reading</a>
-                <a href="{{ route('sales.create') }}" class="btn btn-light"><i class="bi bi-bag-plus me-1"></i> Counter sale</a>
+                @if ($canOpen('meter-readings.create'))
+                    <a href="{{ route('meter-readings.create') }}" class="btn btn-warning"><i class="bi bi-plus-lg me-1"></i> New reading</a>
+                @endif
+                @if ($canOpen('sales.create'))
+                    <a href="{{ route('sales.create') }}" class="btn btn-light"><i class="bi bi-bag-plus me-1"></i> Counter sale</a>
+                @endif
             @endif
-            <a href="{{ route('reports.daily') }}" class="btn btn-light"><i class="bi bi-file-earmark-text me-1"></i> Today's report</a>
+            @if ($canOpen('reports.daily'))
+                <a href="{{ route('reports.daily') }}" class="btn btn-light"><i class="bi bi-file-earmark-text me-1"></i> Today's report</a>
+            @endif
         </div>
     </div>
 
@@ -25,18 +36,21 @@
     @if ($lowStock->isNotEmpty())
         <div class="alert alert-danger d-flex align-items-center gap-2">
             <i class="bi bi-exclamation-triangle-fill"></i>
-            <div>Running low: <strong>{{ $lowStock->map(fn ($row) => $row['product']->name)->join(', ') }}</strong>. <a href="{{ route('purchases.create') }}" class="alert-link">Record a purchase</a></div>
+            <div>Running low: <strong>{{ $lowStock->map(fn ($row) => $row['product']->name)->join(', ') }}</strong>.@if ($canOpen('purchases.create')) <a href="{{ route('purchases.create') }}" class="alert-link">Record a purchase</a>@endif</div>
         </div>
     @endif
 
     <div class="row g-3 mb-4">
+        @if ($showMoney)
         <div class="col-12 col-sm-6 col-xl-3">
             <x-stat-tile label="Today's sales" :value="\App\Support\Format::money(round($today['total_sales']))" icon="cash-stack" tone="sales"
                          :hint="$today['counter_sales'] > 0 ? 'Incl. '.\App\Support\Format::money(round($today['counter_sales'])).' counter items' : null" />
         </div>
-        <div class="col-12 col-sm-6 col-xl-3">
+        @endif
+        <div @class(['col-12', 'col-sm-6 col-xl-3' => $showMoney])>
             <x-stat-tile label="Fuel sold" :value="\App\Support\Format::liters($today['total_liters'])" icon="droplet-fill" tone="fuel" />
         </div>
+        @if ($showMoney)
         <div class="col-12 col-sm-6 col-xl-3">
             <x-stat-tile label="Expenses" :value="\App\Support\Format::money(round($today['total_expenses']))" icon="wallet2" tone="expense" />
         </div>
@@ -44,13 +58,15 @@
             <x-stat-tile :label="$todayClosing ? 'Cash counted' : 'Cash in drawer (est.)'" :value="\App\Support\Format::money(round($cashInHand))" icon="safe2" tone="cash"
                          :hint="$todayClosing ? 'From today\'s closing' : 'Before card and credit split'" />
         </div>
+        @endif
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-xl-8">
+        @if ($showTanks)
+        <div @class(['col-xl-8' => $showMoney, 'col-12' => ! $showMoney])>
             <div class="card h-100">
                 <div class="card-header d-flex">
-                    <span class="d-flex align-items-center gap-2"><span class="live-dot"></span>Tanks live</span>
+                    <span class="d-flex align-items-center gap-2"><i class="bi bi-calculator"></i>Tank book stock</span>
                     <a href="{{ route('tanks.index') }}" class="small fw-normal text-decoration-none">All tanks <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <div class="card-body">
@@ -74,7 +90,9 @@
                 </div>
             </div>
         </div>
-        <div class="col-xl-4">
+        @endif
+        @if ($showMoney)
+        <div @class(['col-xl-4' => $showTanks, 'col-12' => ! $showTanks])>
             <div class="card h-100">
                 <div class="card-header">Accounts</div>
                 <div class="list-group list-group-flush">
@@ -102,6 +120,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
     @if ($month)
@@ -141,10 +160,12 @@
     @endif
 
     <div class="row g-3 mb-4">
+        @if ($showMoney)
         <div class="col-xl-8">
             @include('dashboard.partials.sales-chart', ['days' => $week])
         </div>
-        <div class="col-xl-4">
+        @endif
+        <div @class(['col-xl-4' => $showMoney, 'col-12' => ! $showMoney])>
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     Sold today
@@ -158,24 +179,30 @@
                                 <span class="d-block fw-semibold">{{ $row['product']->name }}</span>
                                 <span class="small text-secondary">@qty($row['quantity'], $row['product']->unit)</span>
                             </span>
-                            <span class="ft-num fw-bold">@money($row['amount'])</span>
+                            @if ($showMoney)
+                                <span class="ft-num fw-bold">@money($row['amount'])</span>
+                            @endif
                         </li>
                     @endforeach
-                    <li class="list-group-item d-flex justify-content-between px-4 py-3 bg-body-tertiary rounded-bottom-4">
-                        <span class="fw-bold">Total</span>
-                        <span class="ft-num fw-bold">@money($today['total_sales'])</span>
-                    </li>
+                    @if ($showMoney)
+                        <li class="list-group-item d-flex justify-content-between px-4 py-3 bg-body-tertiary rounded-bottom-4">
+                            <span class="fw-bold">Total</span>
+                            <span class="ft-num fw-bold">@money($today['total_sales'])</span>
+                        </li>
+                    @endif
                 </ul>
             </div>
         </div>
     </div>
 
     <div class="row g-3">
-        <div class="col-xl-7">
+        <div @class(['col-xl-7' => $showClosings, 'col-12' => ! $showClosings])>
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     Stock
-                    <a href="{{ route('stock.index') }}" class="small fw-normal text-decoration-none">Details</a>
+                    @if ($canOpen('stock.index'))
+                        <a href="{{ route('stock.index') }}" class="small fw-normal text-decoration-none">Details</a>
+                    @endif
                 </div>
                 <div class="card-body">
                     @foreach ($fuelStock as $row)
@@ -209,6 +236,7 @@
                 </div>
             </div>
         </div>
+        @if ($showClosings)
         <div class="col-xl-5">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -234,5 +262,6 @@
                 </ul>
             </div>
         </div>
+        @endif
     </div>
 </x-layouts.app>

@@ -71,6 +71,18 @@
             </header>
 
             <main class="flex-grow-1 p-3 p-lg-4 app-main">
+                {{-- Pages grouped under one sidebar entry show their siblings as tabs. --}}
+                @php($sectionTabs = \App\Support\Navigation::tabs(auth()->user()))
+                @if ($sectionTabs)
+                    <nav class="section-tabs d-print-none" aria-label="{{ $currentPage['label'] ?? 'Section' }}">
+                        @foreach ($sectionTabs as $tab)
+                            <a href="{{ route($tab['route']) }}" @class(['section-tab', 'active' => $tab['current']]) @if ($tab['current']) aria-current="page" @endif>
+                                <i class="bi bi-{{ $tab['icon'] }}"></i><span>{{ $tab['label'] }}</span>
+                            </a>
+                        @endforeach
+                    </nav>
+                @endif
+
                 {{ $slot }}
             </main>
 

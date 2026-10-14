@@ -1,11 +1,12 @@
-<x-layouts.app title="Nozzles live" subtitle="Current meter of every nozzle and today's sales, updating on its own">
-    @php($shiftLetters = ['morning' => 'M', 'evening' => 'E', 'night' => 'N'])
+<x-layouts.app title="Nozzle meters" subtitle="Meter and today's sales of every nozzle, from the readings entered by staff">
+    @php($shiftPlan = \App\Support\ShiftSchedule::shifts())
 
     <div x-data="nozzleBoard(@js(route('nozzles.live')), @js(now()->format('h:i:s A')))">
         <section class="hero-3d mb-4" data-tilt="1.2">
             <div class="row g-3 align-items-center">
                 <div class="col-lg-4">
-                    <div class="d-flex align-items-center gap-2 mb-1"><span class="live-dot"></span><span class="hero-label">Live · {{ $businessDate->format('l d M') }} · <span x-text="at"></span></span></div>
+                    <div class="mb-2"><span class="record-chip"><i class="bi bi-journal-check"></i>From meter readings</span></div>
+                    <div class="hero-label mb-1">{{ $businessDate->format('l d M') }} · refreshed <span x-text="at"></span></div>
                     <div class="hero-value">@liters($board->sum('liters'))</div>
                     <div class="hero-sub">sold today from {{ $board->where('readings', '>', 0)->count() }} of {{ $board->count() }} nozzles</div>
                 </div>
@@ -52,8 +53,8 @@
                             <div class="share-bar mb-3" title="Share of today's liters"><span style="width: {{ $row['share'] }}%" data-nozzle-share="{{ $nozzle->id }}"></span></div>
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="shift-pips" data-nozzle-shifts="{{ $nozzle->id }}">
-                                    @foreach ($shiftLetters as $shift => $letter)
-                                        <span @class(['shift-pip', 'is-done' => in_array($shift, $row['shifts'], true)]) data-shift="{{ $shift }}" title="{{ ucfirst($shift) }} shift">{{ $letter }}</span>
+                                    @foreach ($shiftPlan as $plan)
+                                        <span @class(['shift-pip', 'is-done' => in_array($plan['shift']->value, $row['shifts'], true)]) data-shift="{{ $plan['shift']->value }}" title="{{ $plan['name'] }} shift · {{ $plan['hours'] }}">{{ mb_strtoupper(mb_substr($plan['name'], 0, 1)) }}</span>
                                     @endforeach
                                 </div>
                                 @if ($nozzle->is_active)

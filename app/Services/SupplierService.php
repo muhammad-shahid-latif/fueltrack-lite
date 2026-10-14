@@ -101,13 +101,10 @@ class SupplierService
      */
     public function account(Supplier $supplier): array
     {
-        $purchases = $supplier->purchases()
-            ->with(['fuelProduct', 'tank'])
-            ->orderBy('business_date')
-            ->orderBy('id')
-            ->get();
-
-        $payments = $supplier->payments()->with('recorder')->orderBy('business_date')->orderBy('id')->get();
+        // summaries() eager-loads these for every supplier at once; a single account loads its own.
+        $supplier->loadMissing(self::accountRelations());
+        $purchases = $supplier->purchases;
+        $payments = $supplier->payments;
 
         $openingDate = Carbon::parse($supplier->created_at ?? BusinessClock::today())->startOfDay();
         $bills = [];
@@ -195,7 +192,7 @@ class SupplierService
      */
     public function schedule(): Collection
     {
-        return Supplier::query()->orderBy('name')->get()
+        return Supplier::query()->with(self::accountRelations())->orderBy('name')->get()
             ->flatMap(fn (Supplier $supplier) => $this->account($supplier)['bills']
                 ->where('remaining', '>', 0)
                 ->map(fn (array $bill) => [...$bill, 'supplier' => $supplier]))
@@ -211,10 +208,24 @@ class SupplierService
     public function summaries(): Collection
     {
         return Supplier::query()
+            ->with(self::accountRelations())
             ->orderByDesc('is_active')
             ->orderBy('name')
             ->get()
             ->map(fn (Supplier $supplier) => collect($this->account($supplier))->except(['bills', 'ledger'])->all());
+    }
+
+    /**
+     * Everything account() reads, in date order.
+     *
+     * @return array<string, \Closure>
+     */
+    private static function accountRelations(): array
+    {
+        return [
+            'purchases' => fn ($query) => $query->with(['fuelProduct', 'tank'])->orderBy('business_date')->orderBy('id'),
+            'payments' => fn ($query) => $query->with('recorder')->orderBy('business_date')->orderBy('id'),
+        ];
     }
 
     /**

@@ -59,11 +59,12 @@
                                 </div>
                             </div>
 
-                            @if ($customers->isNotEmpty())
+                            {{-- Hidden when the owner switched the Khata register off for the manager. --}}
+                            @if ($customers->isNotEmpty() && \App\Support\StaffAccess::can(auth()->user(), 'khata'))
                                 <div class="mb-4" x-data="{ onCredit: @js((bool) old('customer_id')) }">
                                     <div class="form-check form-switch mb-2">
                                         <input class="form-check-input" type="checkbox" role="switch" id="on_credit" x-model="onCredit">
-                                        <label class="form-check-label fw-semibold" for="on_credit"><i class="bi bi-journal-bookmark me-1"></i>Sell on credit (debt register)</label>
+                                        <label class="form-check-label fw-semibold" for="on_credit"><i class="bi bi-journal-bookmark me-1"></i>Sell on credit (khata)</label>
                                     </div>
                                     <div class="row g-2" x-show="onCredit" x-cloak>
                                         <div class="col-sm-7">

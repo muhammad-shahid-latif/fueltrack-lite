@@ -17,6 +17,10 @@ import Alpine from 'alpinejs';
 import { http, HttpError } from './http';
 import { armAll, toast } from './toast';
 import { initTilt } from './tilt';
+import { customerFilter, receivePayment } from './khata';
+import owedGive from './owed-give';
+import owedSplit from './owed-split';
+import shiftPlanner from './shift-planner';
 
 window.bootstrap = bootstrap;
 window.Alpine = Alpine;
@@ -26,6 +30,12 @@ window.FT = { http, HttpError, toast };
 // Turbo turns every link and form into a background request and swaps the page
 // in place: no white flash, no re-downloading CSS/JS, and links prefetch on hover.
 Turbo.config.drive.progressBarDelay = 120;
+
+Alpine.data('owedSplit', owedSplit);
+Alpine.data('owedGive', owedGive);
+Alpine.data('receivePayment', receivePayment);
+Alpine.data('customerFilter', customerFilter);
+Alpine.data('shiftPlanner', shiftPlanner);
 
 Alpine.start();
 

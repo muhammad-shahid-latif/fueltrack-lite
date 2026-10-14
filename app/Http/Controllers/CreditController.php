@@ -17,11 +17,11 @@ use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * The debt register: credit sales and payments received, across customers.
+ * The Khata register: credit sales and payments received, across customers.
  */
 class CreditController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, CreditService $creditService): View
     {
         $request->validate([
             'from' => ['nullable', 'date'],
@@ -40,7 +40,7 @@ class CreditController extends Controller
             ->whereDate('business_date', '<=', $to)
             ->when($customerId, fn ($q) => $q->where('customer_id', $customerId));
 
-        $credits = $kind === 'payment' ? collect() : CustomerCredit::query()->tap($scope)->with(['customer', 'fuelProduct', 'recorder'])->get();
+        $credits = $kind === 'payment' ? collect() : CustomerCredit::query()->tap($scope)->with(['customer', 'fuelProduct', 'recorder'])->withSum('owedDeliveries as owed_delivered_sum', 'quantity')->get();
         $payments = $kind === 'credit' ? collect() : CustomerPayment::query()->tap($scope)->with(['customer', 'recorder'])->get();
 
         $entries = $credits->map(fn (CustomerCredit $credit) => ['kind' => 'credit', 'model' => $credit, 'date' => $credit->business_date, 'at' => $credit->created_at])
@@ -56,6 +56,10 @@ class CreditController extends Controller
                 'liters' => round((float) $credits->whereNotNull('fuel_product_id')->where('sale_id', null)->sum('quantity'), 2),
             ],
             'customers' => Customer::query()->orderBy('name')->get(),
+            'owed' => $creditService->openOwed(),
+            'payCustomers' => $payCustomers = $creditService->pickerList(),
+            'receivable' => round((float) $payCustomers->where('balance', '>', 0)->sum('balance'), 2),
+            'paymentMethods' => PaymentMethod::cases(),
             'from' => $from,
             'to' => $to,
             'filters' => $request->only(['customer', 'kind']),
@@ -93,24 +97,35 @@ class CreditController extends Controller
     private function record(StoreCustomerCreditRequest $request, Customer $customer, CreditService $credits): RedirectResponse
     {
         $product = $request->filled('fuel_product_id') ? FuelProduct::findOrFail($request->integer('fuel_product_id')) : null;
+        $quantity = $request->filled('quantity') ? (float) $request->input('quantity') : null;
+        $owed = $product && $quantity !== null && $request->filled('given_quantity')
+            ? round($quantity - (float) $request->input('given_quantity'), 2)
+            : 0.0;
 
         $credit = $credits->recordCredit(
             customer: $customer,
             product: $product,
-            quantity: $request->filled('quantity') ? (float) $request->input('quantity') : null,
+            quantity: $quantity,
             amount: $request->filled('amount') ? (float) $request->input('amount') : null,
             vehicleNumber: $request->filled('vehicle_number') ? mb_strtoupper($request->string('vehicle_number')->trim()->toString()) : null,
             slipNumber: $request->input('slip_number'),
             recordedBy: $request->user(),
             notes: $request->input('notes'),
+            owedQuantity: $owed,
         );
 
-        return redirect()->route('customers.show', $customer)->with('success', sprintf(
+        $message = sprintf(
             'Credit sale saved: %s for %s. Balance now %s.',
             Format::money($credit->amount),
             $customer->name,
             Format::money($credits->balance($customer)),
-        ));
+        );
+
+        if ((float) $credit->owed_quantity > 0) {
+            $message .= sprintf(' %s given now, %s still to give later.', Format::liters($credit->givenQuantity()), Format::liters($credit->owed_quantity));
+        }
+
+        return redirect()->route('customers.show', $customer)->with('success', $message);
     }
 
     public function destroy(CustomerCredit $credit, CreditService $credits): RedirectResponse

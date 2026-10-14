@@ -1,12 +1,13 @@
-<x-layouts.app title="Tanks" subtitle="Live fuel levels, worked out from deliveries, nozzle sales and dips">
+<x-layouts.app title="Tanks" subtitle="Book stock, calculated from deliveries, nozzle readings and dips">
     @php($statusBadge = ['ok' => ['text-bg-success', 'Healthy'], 'low' => ['text-bg-warning', 'Low'], 'critical' => ['text-bg-danger', 'Critical']])
 
     <div x-data="tankBoard({ levelsUrl: @js(route('tanks.levels')), at: @js(now()->format('h:i:s A')) })">
     <section class="hero-3d mb-4" data-tilt="1.2">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
-            <div class="d-flex align-items-center gap-2">
-                <span class="live-dot"></span>
-                <span class="hero-label">Live tank levels · updated <span x-text="at"></span></span>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="record-chip"><i class="bi bi-calculator"></i>Calculated from records</span>
+                <span class="hero-label">Book stock · refreshed <span x-text="at"></span></span>
+                <span class="hero-label d-none d-xl-inline opacity-75">· Not connected to tank sensors. Take a dip reading to check the real level.</span>
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('stock.movements') }}" class="btn btn-light btn-sm"><i class="bi bi-arrow-left-right me-1"></i> Inventory movements</a>
@@ -156,19 +157,25 @@
                     each('data-tank-dip', (el) => this.paintLastDip(el, tank.last_dip));
                 },
 
+                /** Rebuilds the "Last dip" chip; same markup as tanks/partials/last-dip. */
                 paintLastDip(el, dip) {
-                    const icon = document.createElement('i');
-                    icon.className = 'bi bi-rulers me-1';
+                    const status = dip ? dip.status : 'none';
+                    const icons = { none: 'rulers', match: 'check-circle-fill', gain: 'arrow-up-circle-fill', loss: 'arrow-down-circle-fill' };
+                    const node = (tag, className, text = '') => Object.assign(document.createElement(tag), { className, textContent: text });
 
-                    if (!dip) {
-                        el.replaceChildren(icon, 'No dip recorded yet');
-                        return;
-                    }
+                    const text = node('div', 'dip-chip-text');
+                    text.append(
+                        node('div', 'dip-chip-label', 'Last dip'),
+                        node('div', 'dip-chip-when', dip ? dip.date_label + (dip.time_label ? ' · ' + dip.time_label : '') : 'No reading yet'),
+                    );
 
-                    const figure = document.createElement('span');
-                    figure.className = `fw-semibold ${dip.status === 'gain' ? 'amount-in' : dip.status === 'loss' ? 'amount-out' : 'text-success'}`;
-                    figure.textContent = dip.status === 'match' ? 'Matched' : dip.variance_label;
-                    el.replaceChildren(icon, `Last dip ${dip.date_label}${dip.time_label ? ', ' + dip.time_label : ''}: `, figure);
+                    const chip = node('div', `dip-chip is-${status}`);
+                    chip.append(
+                        node('i', `bi bi-${icons[status]} dip-chip-icon`),
+                        text,
+                        node('span', 'dip-chip-value', !dip ? 'Not checked' : status === 'match' ? 'Matched' : dip.variance_label),
+                    );
+                    el.replaceChildren(chip);
                 },
 
                 flash(id) {

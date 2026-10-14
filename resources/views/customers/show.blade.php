@@ -79,6 +79,7 @@
                             <div class="col-6"><input type="text" name="vehicle_number" value="{{ old('vehicle_number', $customer->vehicle_number) }}" maxlength="30" class="form-control" placeholder="Vehicle no."></div>
                             <div class="col-6"><input type="text" name="slip_number" value="{{ old('slip_number') }}" maxlength="30" class="form-control" placeholder="Slip no."></div>
                         </div>
+                        <div class="mt-3">@include('credits.partials.owed-split', ['compact' => true])</div>
                         <div class="calc-panel d-flex justify-content-between align-items-center mt-3">
                             <span class="calc-label fs-6">Credit amount</span>
                             <span class="calc-value is-total" x-text="total > 0 ? 'Rs. ' + total.toLocaleString('en-US') : '—'"></span>
@@ -127,6 +128,8 @@
         </div>
 
         <div class="col-xl-8">
+            @include('credits.partials.owed-fuel', ['owed' => $owed, 'showCustomer' => false])
+
             <div class="card mb-4">
                 <div class="card-header">Unpaid credit <span class="badge text-bg-light border fw-normal ms-auto">{{ $account['debts']->count() }}</span></div>
                 <div class="table-responsive">
@@ -157,15 +160,29 @@
                         <thead><tr><th>Date</th><th>Entry</th><th class="text-end">Credit (+)</th><th class="text-end">Paid (−)</th><th class="text-end">Balance</th><th class="d-print-none"></th></tr></thead>
                         <tbody>
                             @forelse ($account['ledger'] as $row)
-                                <tr @class(['is-opening' => $row['type'] === 'opening'])>
+                                <tr @class(['is-opening' => $row['type'] === 'opening', 'is-owed' => $row['type'] === 'owed'])>
                                     <td class="text-nowrap">{{ $row['date']->format('d M Y') }}</td>
-                                    <td><span class="fw-semibold">{{ $row['label'] }}</span>@if ($row['detail'])<div class="small text-secondary">{{ $row['detail'] }}</div>@endif</td>
+                                    <td>
+                                        <span class="fw-semibold">
+                                            @if ($row['type'] === 'owed')
+                                                <i class="bi bi-fuel-pump-fill me-1"></i>
+                                            @endif
+                                            {{ $row['label'] }}
+                                        </span>
+                                        @if ($row['detail'])
+                                            <div class="small text-secondary">{{ $row['detail'] }}</div>
+                                        @endif
+                                        @if ($row['type'] === 'credit')
+                                            <div>@include('credits.partials.owed-badge', ['credit' => $row['model']])</div>
+                                        @endif
+                                    </td>
                                     <td class="text-end ft-num">{{ $row['debit'] > 0 ? \App\Support\Format::money($row['debit']) : '' }}</td>
                                     <td class="text-end ft-num amount-in">{{ $row['credit'] > 0 ? \App\Support\Format::money($row['credit']) : '' }}</td>
                                     <td class="text-end ft-num fw-bold">@money($row['balance'])</td>
                                     <td class="text-end d-print-none">
-                                        @if (auth()->user()->isOwner() && in_array($row['type'], ['credit', 'payment'], true) && ! ($row['type'] === 'credit' && $row['model']->isCounterSale()))
-                                            <form method="POST" action="{{ $row['type'] === 'credit' ? route('credits.destroy', $row['model']) : route('customer-payments.destroy', $row['model']) }}" x-data="{ sure: false }" class="d-inline">
+                                        @if (auth()->user()->isOwner() && in_array($row['type'], ['credit', 'payment', 'owed'], true) && ! ($row['type'] === 'credit' && $row['model']->isCounterSale()))
+                                            @php($deleteRoute = ['credit' => 'credits.destroy', 'owed' => 'owed-fuel.destroy', 'payment' => 'customer-payments.destroy'][$row['type']])
+                                            <form method="POST" action="{{ route($deleteRoute, $row['model']) }}" x-data="{ sure: false }" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="button" class="btn btn-sm btn-link text-danger" x-show="! sure" @click="sure = true" aria-label="Delete entry"><i class="bi bi-trash3"></i></button>

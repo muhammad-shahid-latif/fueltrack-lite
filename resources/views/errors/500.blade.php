@@ -1,0 +1,1 @@
+@include('errors.layout', ['code' => 500, 'title' => 'Something went wrong', 'message' => 'The system could not finish this request. Nothing was saved. Try again, and tell the developer if it keeps happening.'])

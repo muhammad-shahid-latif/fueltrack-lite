@@ -60,6 +60,13 @@
                         <dt class="col-7 fw-semibold mt-2">Expenses</dt>
                         <dd class="col-5 text-end mt-2">@money($closing->total_expenses)</dd>
                     </dl>
+                    <div class="mt-3">
+                        @include('closings.partials.owed-explainer', [
+                            'credit' => (float) $closing->credit_sales,
+                            'billed' => (float) $closing->owed_fuel_billed,
+                            'given' => (float) $closing->owed_fuel_given,
+                        ])
+                    </div>
                 </div>
             </div>
         </div>

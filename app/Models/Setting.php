@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Once;
 
 class Setting extends Model
 {
@@ -32,6 +33,7 @@ class Setting extends Model
         }
 
         Cache::forget(self::CACHE_KEY);
+        Once::flush();
     }
 
     /**
@@ -39,9 +41,10 @@ class Setting extends Model
      */
     public static function allValues(): array
     {
-        return Cache::rememberForever(
+        // Held in memory for the request: settings are read many times per page.
+        return once(fn () => Cache::rememberForever(
             self::CACHE_KEY,
             fn () => static::query()->pluck('value', 'key')->all(),
-        );
+        ));
     }
 }

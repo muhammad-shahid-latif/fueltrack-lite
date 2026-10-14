@@ -12,10 +12,12 @@ use App\Services\DailyClosingService;
 use App\Services\MeterReadingService;
 use App\Support\BusinessClock;
 use App\Support\Format;
+use App\Support\ShiftSchedule;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class MeterReadingController extends Controller
@@ -24,7 +26,7 @@ class MeterReadingController extends Controller
     {
         $request->validate([
             'date' => ['nullable', 'date'],
-            'shift' => ['nullable', 'in:'.implode(',', array_column(Shift::cases(), 'value'))],
+            'shift' => ['nullable', Rule::enum(Shift::class)],
         ]);
 
         $date = $this->dateFrom($request);
@@ -41,7 +43,7 @@ class MeterReadingController extends Controller
         return view('meter-readings.index', [
             'date' => $date,
             'shift' => $shift,
-            'shifts' => Shift::cases(),
+            'shifts' => ShiftSchedule::active(),
             'readings' => $readings,
             'summary' => $closings->summary($date),
             'closing' => DailyClosing::query()->whereDate('business_date', $date)->first(),
@@ -66,7 +68,7 @@ class MeterReadingController extends Controller
                 'current_meter' => Format::meter($nozzle->current_meter),
             ])->values(),
             'selectedNozzleId' => $request->integer('nozzle') ?: null,
-            'shifts' => Shift::cases(),
+            'shifts' => ShiftSchedule::active(),
             'currentShift' => Shift::at(BusinessClock::now()),
             'businessDate' => BusinessClock::today(),
             'todayIsClosed' => $closings->isClosed(BusinessClock::today()),
@@ -110,7 +112,8 @@ class MeterReadingController extends Controller
             'reading' => $meterReading,
             'previous' => $service->neighbour($meterReading, before: true),
             'next' => $service->neighbour($meterReading, before: false),
-            'shifts' => Shift::cases(),
+            // A reading from a shift no longer in the plan can keep its shift.
+            'shifts' => collect(ShiftSchedule::active())->push($meterReading->shift)->unique()->sortBy(fn (Shift $shift) => array_search($shift, Shift::cases(), true))->values()->all(),
         ]);
     }
 

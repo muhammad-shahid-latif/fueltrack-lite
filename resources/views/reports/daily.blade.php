@@ -72,6 +72,7 @@
             </div>
 
             <h3 class="h6 fw-bold mb-2">Sales by product</h3>
+            <div class="table-responsive">
             <table class="table table-sm align-middle mb-4">
                 <thead>
                     <tr><th>Product</th><th class="text-end">Quantity</th><th class="text-end">Sales</th></tr>
@@ -93,6 +94,7 @@
                     </tr>
                 </tfoot>
             </table>
+            </div>
 
             <div class="row g-4 mb-4">
                 <div class="col-md-6">

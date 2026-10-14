@@ -26,6 +26,8 @@ class CustomerController extends Controller
 
         return view('customers.index', [
             'summaries' => $summaries,
+            'payCustomers' => $credits->pickerList(),
+            'paymentMethods' => PaymentMethod::cases(),
             'aging' => $aging,
             'totals' => [
                 'receivable' => round($summaries->sum('balance'), 2),
@@ -45,7 +47,7 @@ class CustomerController extends Controller
     {
         $customer = Customer::create($this->attributes($request) + ['is_active' => true]);
 
-        return redirect()->route('customers.show', $customer)->with('success', "{$customer->name} added to the debt register.");
+        return redirect()->route('customers.show', $customer)->with('success', "{$customer->name} added to the Khata register.");
     }
 
     public function show(Request $request, Customer $customer, CreditService $credits): View
@@ -57,6 +59,7 @@ class CustomerController extends Controller
 
         return view('customers.show', [
             'account' => $credits->account($customer, $request->date('from'), $request->date('to')),
+            'owed' => $credits->openOwed($customer),
             'fuels' => FuelProduct::query()->fuel()->active()->orderBy('id')->get(),
             'paymentMethods' => PaymentMethod::cases(),
             'from' => $request->date('from'),

@@ -85,8 +85,13 @@ test('the counter sale form lists only counter items', function () {
         ->assertDontSee('"name":"Petrol"', false);
 });
 
-test('sidebar links to every module', function () {
+test('sidebar links to every module, grouped pages through their section tabs', function () {
     $this->actingAs($this->user)
         ->get(route('dashboard'))
-        ->assertSee([route('meter-readings.index'), route('sales.index'), route('pumps.index'), route('fuel-products.index')]);
+        ->assertSee([route('meter-readings.index'), route('sales.index'), route('credits.index'), route('fuel-products.index')]);
+
+    // Pumps sit inside the Setup section: reachable from its tabs.
+    $this->actingAs($this->user)
+        ->get(route('fuel-products.index'))
+        ->assertSee(['section-tab', route('pumps.index')], false);
 });

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnforceStaffAccess;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\NormalizeNumberInput;
 use App\Http\Middleware\RecognizeTurboPrefetch;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'staff.access' => EnforceStaffAccess::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Enums\Shift;
 use App\Models\MeterReading;
 use App\Models\Nozzle;
 use App\Support\BusinessClock;
+use App\Support\ShiftSchedule;
 use DateTimeInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -128,6 +128,6 @@ class NozzleReportService
      */
     public static function shiftOrder(): array
     {
-        return array_map(fn (Shift $shift) => $shift->value, Shift::cases());
+        return ShiftSchedule::activeValues();
     }
 }
