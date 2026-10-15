@@ -3,6 +3,7 @@
 use App\Models\FuelPrice;
 use App\Models\FuelProduct;
 use App\Models\User;
+use App\Support\StaffAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -104,11 +105,33 @@ test('products with history cannot be deleted, unused ones can', function () {
     expect($unused->fresh())->toBeNull();
 });
 
-test('staff can view products but not change them', function () {
-    $this->actingAs($this->staff)->get(route('fuel-products.index'))->assertOk()->assertSee(['Engine Oil 1L', 'Price since']);
+test('the manager changes prices but not product details', function () {
+    $this->actingAs($this->staff)->get(route('fuel-products.index'))->assertOk()->assertSee(['Engine Oil 1L', 'Price since', 'Change price']);
     $this->actingAs($this->staff)->get(route('fuel-products.edit', $this->petrol))->assertForbidden();
-    $this->actingAs($this->staff)->put(route('fuel-products.price', $this->petrol), ['price' => '1'])->assertForbidden();
     $this->actingAs($this->staff)->get(route('fuel-products.create'))->assertForbidden();
+
+    $this->actingAs($this->staff)
+        ->put(route('fuel-products.price', $this->petrol), ['price' => '282.50', 'note' => 'OGRA'])
+        ->assertRedirect(route('fuel-products.index'))
+        ->assertSessionHas('success');
+
+    expect((float) $this->petrol->fresh()->selling_price)->toBe(282.5)
+        ->and($this->petrol->prices()->latest('id')->first()->changed_by)->toBe($this->staff->id);
+});
+
+test('the owner can stop the manager from changing prices', function () {
+    StaffAccess::save(['prices']);
+
+    $this->actingAs($this->staff)->get(route('fuel-products.index'))->assertOk()->assertDontSee('Change price');
+    $this->actingAs($this->staff)
+        ->put(route('fuel-products.price', $this->petrol), ['price' => '1'])
+        ->assertRedirect(route('dashboard'))
+        ->assertSessionHas('warning', 'The owner has turned off Change fuel prices for your account.');
+
+    expect((float) $this->petrol->fresh()->selling_price)->not->toBe(1.0);
+
+    // The owner is never restricted.
+    $this->actingAs($this->owner)->put(route('fuel-products.price', $this->petrol), ['price' => '290'])->assertSessionHas('success');
 });
 
 test('purchases work for counter items too', function () {

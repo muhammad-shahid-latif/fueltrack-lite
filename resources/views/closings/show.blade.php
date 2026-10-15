@@ -10,6 +10,12 @@
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('closings.index') }}" class="btn btn-light">All closings</a>
             @if (auth()->user()->isOwner())
+                @if (\App\Support\WhatsAppSettings::configured() && \App\Support\WhatsAppSettings::recipients() !== [])
+                    <form method="POST" action="{{ route('closings.whatsapp', $closing) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-success"><i class="bi bi-whatsapp me-1"></i> Send on WhatsApp</button>
+                    </form>
+                @endif
                 <a href="{{ route('closings.edit', $closing) }}" class="btn btn-outline-dark">
                     <i class="bi bi-pencil me-1"></i> Edit cash count
                 </a>

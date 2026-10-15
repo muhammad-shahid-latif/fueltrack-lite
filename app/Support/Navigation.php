@@ -70,6 +70,7 @@ final class Navigation
                     self::page('Pumps & nozzles', 'diagram-3', 'pumps.index'),
                     self::page('Shifts', 'clock-history', 'shifts.edit', roles: [UserRole::Owner]),
                     self::page('Manager access', 'person-lock', 'access.edit', roles: [UserRole::Owner]),
+                    self::page('WhatsApp', 'whatsapp', 'whatsapp.edit', roles: [UserRole::Owner]),
                     self::page('Settings', 'gear', 'settings.edit', roles: [UserRole::Owner]),
                 ]),
             ]],

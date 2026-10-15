@@ -3,7 +3,7 @@
 <section class="price-board" aria-label="Current fuel prices" data-tilt="1.5">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div class="price-board-title"><i class="bi bi-broadcast me-2"></i>Today's fuel prices</div>
-        @if (auth()->user()->isOwner())
+        @if (\App\Support\StaffAccess::can(auth()->user(), 'prices') && \App\Support\StaffAccess::allowsRoute(auth()->user(), 'fuel-products.index'))
             <a href="{{ route('fuel-products.index') }}" class="btn btn-sm btn-warning">Change a price</a>
         @endif
     </div>

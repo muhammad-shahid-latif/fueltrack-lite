@@ -44,6 +44,8 @@ final class StaffAccess
             'can' => 'Open the daily report and nozzle performance.', 'routes' => ['reports.daily', 'reports.nozzles']],
         'setup' => ['label' => 'Products & pumps (view)', 'icon' => 'sliders', 'group' => 'Reports & setup',
             'can' => 'See products, prices, pumps and nozzles. Changes stay owner-only.', 'routes' => ['fuel-products.*', 'pumps.*']],
+        'prices' => ['label' => 'Change fuel prices', 'icon' => 'tags', 'group' => 'Reports & setup',
+            'can' => 'Change the selling price of fuel and counter items. Every change is logged with who made it.', 'routes' => ['fuel-products.price']],
         'dashboard_money' => ['label' => 'Money on the dashboard', 'icon' => 'cash-stack', 'group' => 'Reports & setup',
             'can' => 'See today\'s sales, expenses, cash in drawer, receivables and the sales chart on the dashboard.', 'routes' => []],
     ];
@@ -86,10 +88,13 @@ final class StaffAccess
             return null;
         }
 
-        foreach (self::MODULES as $key => $module) {
-            foreach ($module['routes'] as $pattern) {
-                if (Str::is($pattern, $routeName)) {
-                    return $key;
+        // Exact route names win over wildcards ("fuel-products.price" before "fuel-products.*").
+        foreach ([false, true] as $wildcards) {
+            foreach (self::MODULES as $key => $module) {
+                foreach ($module['routes'] as $pattern) {
+                    if (str_contains($pattern, '*') === $wildcards && Str::is($pattern, $routeName)) {
+                        return $key;
+                    }
                 }
             }
         }

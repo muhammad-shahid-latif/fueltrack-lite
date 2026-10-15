@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreDailyClosingRequest;
 use App\Http\Requests\UpdateDailyClosingRequest;
+use App\Jobs\SendClosingSummary;
 use App\Models\DailyClosing;
 use App\Services\DailyClosingService;
 use App\Support\BusinessClock;
 use App\Support\Station;
+use App\Support\WhatsAppSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -54,6 +56,11 @@ class DailyClosingController extends Controller
             notes: $request->input('notes'),
         );
 
+        // WhatsApp summary to the owner, sent once the page has been answered.
+        if (WhatsAppSettings::ready()) {
+            SendClosingSummary::dispatchAfterResponse($closing->id);
+        }
+
         return redirect()
             ->route('closings.show', $closing)
             ->with($closing->hasCashDifference() ? 'warning' : 'success', $closing->hasCashDifference()
@@ -85,6 +92,11 @@ class DailyClosingController extends Controller
             cardSales: (float) $request->input('card_sales'),
             notes: $request->input('notes'),
         );
+
+        // WhatsApp summary to the owner, sent once the page has been answered.
+        if (WhatsAppSettings::ready()) {
+            SendClosingSummary::dispatchAfterResponse($closing->id);
+        }
 
         return redirect()
             ->route('closings.show', $closing)

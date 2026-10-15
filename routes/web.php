@@ -28,6 +28,7 @@ use App\Http\Controllers\StaffAccessController;
 use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TankController;
+use App\Http\Controllers\WhatsAppSettingController;
 use App\Models\Employee;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,8 @@ Route::middleware(['auth', 'staff.access'])->group(function () {
 
     // Fuel
     Route::get('/fuel-products', [FuelProductController::class, 'index'])->name('fuel-products.index');
+    // Owner, and the manager unless the owner switched "Change fuel prices" off.
+    Route::put('/fuel-products/{fuelProduct}/price', [FuelProductController::class, 'updatePrice'])->name('fuel-products.price');
     Route::middleware('role:owner')->group(function () {
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
@@ -80,8 +83,11 @@ Route::middleware(['auth', 'staff.access'])->group(function () {
         Route::put('/settings/shifts', [ShiftSettingController::class, 'update'])->name('shifts.update');
         Route::get('/settings/manager-access', [StaffAccessController::class, 'edit'])->name('access.edit');
         Route::put('/settings/manager-access', [StaffAccessController::class, 'update'])->name('access.update');
+        Route::get('/settings/whatsapp', [WhatsAppSettingController::class, 'edit'])->name('whatsapp.edit');
+        Route::put('/settings/whatsapp', [WhatsAppSettingController::class, 'update'])->name('whatsapp.update');
+        Route::post('/settings/whatsapp/test', [WhatsAppSettingController::class, 'test'])->name('whatsapp.test');
+        Route::post('/closings/{closing}/whatsapp', [WhatsAppSettingController::class, 'resend'])->name('closings.whatsapp');
         Route::resource('fuel-products', FuelProductController::class)->except(['index', 'show'])->parameters(['fuel-products' => 'fuelProduct']);
-        Route::put('/fuel-products/{fuelProduct}/price', [FuelProductController::class, 'updatePrice'])->name('fuel-products.price');
 
         // Owner corrections. A closed day must be reopened before its records change.
         Route::resource('meter-readings', MeterReadingController::class)->only(['edit', 'update', 'destroy']);

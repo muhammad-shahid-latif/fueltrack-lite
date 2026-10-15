@@ -97,8 +97,9 @@ class FuelProductController extends Controller
     {
         $entry = $prices->change($fuelProduct, (float) $request->input('price'), $request->user(), $request->input('note'));
 
+        // The owner returns to the product page; the manager to the price list.
         return redirect()
-            ->route('fuel-products.edit', $fuelProduct)
+            ->route($request->user()->isOwner() ? 'fuel-products.edit' : 'fuel-products.index', $request->user()->isOwner() ? $fuelProduct : [])
             ->with('success', sprintf(
                 '%s price changed to %s from %s.',
                 $fuelProduct->name,

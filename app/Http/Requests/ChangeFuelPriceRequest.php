@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Support\StaffAccess;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ChangeFuelPriceRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return (bool) $this->user()?->isOwner();
+        // The manager may change prices unless the owner switched it off (Setup → Manager access).
+        return StaffAccess::can($this->user(), 'prices') && $this->user() !== null;
     }
 
     /**
