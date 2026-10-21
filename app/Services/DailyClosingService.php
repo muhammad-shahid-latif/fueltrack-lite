@@ -28,7 +28,11 @@ class DailyClosingService
      * pumped today (owed_fuel_given). credit_dispensed is the credit fuel that
      * actually left the nozzles today, which is what comes off the cash.
      *
-     * @return array{date: string, total_liters: float, total_sales: float, fuel_sales: float, counter_sales: float, credit_sales: float, owed_fuel_billed: float, owed_fuel_given: float, credit_dispensed: float, owed_liters: array{billed: float, given: float}, total_expenses: float, cash_expenses: float, customer_receipts: float, supplier_payments: float, is_closed: bool}
+     * Fuel relief: the meters count all fuel at the pump price, but part of
+     * it was paid by the government through relief tokens, later. So the
+     * day's relief amount comes off the cash too.
+     *
+     * @return array{date: string, total_liters: float, total_sales: float, fuel_sales: float, counter_sales: float, credit_sales: float, owed_fuel_billed: float, owed_fuel_given: float, credit_dispensed: float, owed_liters: array{billed: float, given: float}, relief: array{tokens: int, liters: float, amount: float}, total_expenses: float, cash_expenses: float, customer_receipts: float, supplier_payments: float, is_closed: bool}
      */
     public function summary(DateTimeInterface|string $date): array
     {
@@ -67,6 +71,7 @@ class DailyClosingService
             'owed_fuel_given' => $owedGiven,
             'credit_dispensed' => round($credit - $owedBilled + $owedGiven, 2),
             'owed_liters' => CreditService::owedLitersOn($date),
+            'relief' => ReliefService::totalsOn($date),
             'total_expenses' => round((float) $expenses->total, 2),
             'cash_expenses' => round((float) $expenses->cash, 2),
             'customer_receipts' => CreditService::cashReceivedOn($date),
@@ -155,13 +160,15 @@ class DailyClosingService
     {
         $summary = $this->summary($date);
         $creditSales = $summary['credit_sales'];
-        $cashSales = round($summary['total_sales'] - $cardSales - $summary['credit_dispensed'], 2);
+        $relief = $summary['relief']['amount'];
+        $cashSales = round($summary['total_sales'] - $cardSales - $summary['credit_dispensed'] - $relief, 2);
 
         if ($cashSales < 0) {
             throw ValidationException::withMessages([
                 'card_sales' => sprintf(
-                    'Card sales plus credit fuel given today (Rs. %s from the Khata register) cannot exceed total sales of Rs. %s.',
+                    'Card sales plus credit fuel given today (Rs. %s from the Khata register)%s cannot exceed total sales of Rs. %s.',
                     number_format($summary['credit_dispensed'], 2),
+                    $relief > 0 ? sprintf(' and fuel relief (Rs. %s)', number_format($relief, 2)) : '',
                     number_format($summary['total_sales'], 2),
                 ),
             ]);
@@ -179,6 +186,8 @@ class DailyClosingService
             'credit_sales' => round($creditSales, 2),
             'owed_fuel_billed' => $summary['owed_fuel_billed'],
             'owed_fuel_given' => $summary['owed_fuel_given'],
+            'relief_liters' => $summary['relief']['liters'],
+            'relief_amount' => $relief,
             'cash_sales' => $cashSales,
             'total_expenses' => $summary['total_expenses'],
             'cash_expenses' => $summary['cash_expenses'],

@@ -21,7 +21,7 @@ return [
     // Setup → WhatsApp; only the API address and version live here.
     'whatsapp' => [
         'graph_url' => env('WHATSAPP_GRAPH_URL', 'https://graph.facebook.com'),
-        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v21.0'),
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v25.0'),
         'timeout' => 15,
     ],
 

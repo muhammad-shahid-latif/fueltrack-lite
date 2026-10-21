@@ -32,6 +32,7 @@ class ActivityLog extends Model
         CustomerCredit::class => 'Credit sales',
         CustomerPayment::class => 'Customer payments',
         OwedFuelDelivery::class => 'Owed fuel',
+        ReliefSale::class => 'Fuel relief',
         Employee::class => 'Employees',
         SalaryAdvance::class => 'Salary advances',
         SalarySlip::class => 'Salary slips',

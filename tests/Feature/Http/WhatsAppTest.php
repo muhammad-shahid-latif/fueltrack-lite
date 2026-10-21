@@ -74,7 +74,7 @@ test('closing the day sends the template summary to the owner', function () {
         $body = $request->data();
         $values = array_column($body['template']['components'][0]['parameters'], 'text');
 
-        return $request->url() === 'https://graph.facebook.com/v21.0/106540352242922/messages'
+        return $request->url() === 'https://graph.facebook.com/v25.0/106540352242922/messages'
             && $request->hasHeader('Authorization', 'Bearer '.str_repeat('EAAG', 10))
             && $body['to'] === '923001234567'
             && $body['template']['name'] === 'daily_closing_summary'

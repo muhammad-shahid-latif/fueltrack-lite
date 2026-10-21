@@ -36,6 +36,7 @@ final class Navigation
                     self::page('Entries', 'journal-text', 'credits.index'),
                     self::page('Customers', 'person-vcard', 'customers.index'),
                 ]),
+                self::page('Fuel relief', 'patch-check', 'relief.index'),
                 self::page('Office Expense', 'wallet2', 'expenses.index'),
                 self::page('Daily closing', 'journal-check', 'closings.index'),
             ]],

@@ -38,7 +38,8 @@ class ClosingSummary
             'liters' => Format::liters($closing->total_liters),
             'liters_by_fuel' => $this->list($fuel, 'sold'),
             'sales' => Format::money($closing->total_sales),
-            'split' => sprintf('Cash %s, Card %s, Credit %s', Format::money($closing->cash_sales), Format::money($closing->card_sales), Format::money($closing->credit_sales)),
+            'split' => sprintf('Cash %s, Card %s, Credit %s', Format::money($closing->cash_sales), Format::money($closing->card_sales), Format::money($closing->credit_sales))
+                .((float) $closing->relief_amount > 0 ? ', Fuel relief '.Format::money($closing->relief_amount) : ''),
             'expenses' => Format::money($closing->total_expenses),
             'cash' => Format::money($closing->actual_cash).' counted, '.$cashState,
             'stock_left' => $this->list($fuel, 'closing'),

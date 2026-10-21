@@ -19,6 +19,7 @@ use App\Http\Controllers\OwedFuelController;
 use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\ProfitLossController;
 use App\Http\Controllers\PumpController;
+use App\Http\Controllers\ReliefController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalaryAdvanceController;
 use App\Http\Controllers\SaleController;
@@ -64,6 +65,11 @@ Route::middleware(['auth', 'staff.access'])->group(function () {
     Route::post('/customers/{customer}/payments', [CreditController::class, 'receive'])->name('customers.payments.store');
     Route::post('/credits/{credit}/owed-fuel', [OwedFuelController::class, 'store'])->name('credits.owed.store');
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+
+    // PM Fuel Relief Scheme: the day's relief total, entered before closing. The owner tracks the claim.
+    Route::get('/relief', [ReliefController::class, 'index'])->name('relief.index');
+    Route::post('/relief', [ReliefController::class, 'store'])->name('relief.store');
+    Route::delete('/relief/{sale}', [ReliefController::class, 'destroy'])->name('relief.destroy');
 
     // Tanks: everyone sees levels and takes dips.
     Route::get('/tanks', [TankController::class, 'index'])->name('tanks.index');
@@ -135,6 +141,10 @@ Route::middleware(['auth', 'staff.access'])->group(function () {
         Route::delete('/credits/{credit}', [CreditController::class, 'destroy'])->name('credits.destroy');
         Route::delete('/customer-payments/{payment}', [CreditController::class, 'destroyPayment'])->name('customer-payments.destroy');
         Route::delete('/owed-fuel/{delivery}', [OwedFuelController::class, 'destroy'])->name('owed-fuel.destroy');
+
+        Route::put('/relief/settings', [ReliefController::class, 'settings'])->name('relief.settings');
+        Route::post('/relief/claims/{date}', [ReliefController::class, 'receive'])->where('date', '\d{4}-\d{2}-\d{2}')->name('relief.receive');
+        Route::delete('/relief/claims/{date}', [ReliefController::class, 'undoReceive'])->where('date', '\d{4}-\d{2}-\d{2}')->name('relief.unreceive');
 
         Route::resource('pumps', PumpController::class)->except(['index', 'show']);
         Route::resource('pumps.nozzles', NozzleController::class)->only(['store', 'update', 'destroy']);

@@ -32,6 +32,8 @@ final class StaffAccess
             'can' => 'See all sales and sell counter items (oil, coolant…).', 'routes' => ['sales.*']],
         'khata' => ['label' => 'Khata register', 'icon' => 'journal-bookmark', 'group' => 'Daily work',
             'can' => 'Give fuel on credit, receive payments, see customer balances and give owed fuel.', 'routes' => ['credits.*', 'customers.*']],
+        'relief' => ['label' => 'Fuel relief', 'icon' => 'patch-check', 'group' => 'Daily work',
+            'can' => 'Enter the day\'s PM Fuel Relief liters and rate before closing.', 'routes' => ['relief.*']],
         'expenses' => ['label' => 'Office Expense', 'icon' => 'wallet2', 'group' => 'Daily work',
             'can' => 'Record and see office expenses.', 'routes' => ['expenses.*']],
         'closings' => ['label' => 'Daily closing', 'icon' => 'journal-check', 'group' => 'Daily work',

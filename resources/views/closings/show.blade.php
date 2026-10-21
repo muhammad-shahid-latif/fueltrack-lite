@@ -55,6 +55,10 @@
                     <dl class="row mb-0 fs-6">
                         <dt class="col-7 fw-normal text-secondary">Fuel sold</dt>
                         <dd class="col-5 text-end">@liters($closing->total_liters)</dd>
+                        @if ((float) $closing->relief_liters > 0)
+                            <dt class="col-7 fw-normal text-secondary ps-4 small">of which on relief</dt>
+                            <dd class="col-5 text-end small text-success">@liters($closing->relief_liters)</dd>
+                        @endif
                         <dt class="col-7 fw-semibold">Total sales</dt>
                         <dd class="col-5 text-end fw-bold">@money($closing->total_sales)</dd>
                         <dt class="col-7 fw-normal text-secondary ps-4">Cash sales</dt>
@@ -63,6 +67,10 @@
                         <dd class="col-5 text-end">@money($closing->card_sales)</dd>
                         <dt class="col-7 fw-normal text-secondary ps-4">Credit sales</dt>
                         <dd class="col-5 text-end">@money($closing->credit_sales)</dd>
+                        @if ((float) $closing->relief_amount > 0)
+                            <dt class="col-7 fw-normal text-secondary ps-4">Fuel relief (government pays)</dt>
+                            <dd class="col-5 text-end">@money($closing->relief_amount)</dd>
+                        @endif
                         <dt class="col-7 fw-semibold mt-2">Expenses</dt>
                         <dd class="col-5 text-end mt-2">@money($closing->total_expenses)</dd>
                     </dl>
@@ -73,6 +81,14 @@
                             'given' => (float) $closing->owed_fuel_given,
                         ])
                     </div>
+                    @if ((float) $closing->relief_amount > 0)
+                        <div class="mt-3">
+                            @include('closings.partials.relief-explainer', [
+                                'relief' => \App\Services\ReliefService::totalsOn($closing->business_date->toDateString()),
+                                'date' => $closing->business_date->toDateString(),
+                            ])
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

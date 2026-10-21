@@ -3,6 +3,7 @@
               totalSales: {{ $summary['total_sales'] }},
               cashExpenses: {{ $summary['cash_expenses'] }},
               creditSales: {{ $summary['credit_dispensed'] }},
+              relief: {{ $summary['relief']['amount'] }},
               receipts: {{ $summary['customer_receipts'] }},
               supplierCash: {{ $summary['supplier_payments'] }},
               openingCash: @js(old('opening_cash', $values['opening_cash'])),
@@ -25,6 +26,10 @@
                         <dl class="row mb-0">
                             <dt class="col-7 fw-normal text-secondary">Fuel sold</dt>
                             <dd class="col-5 text-end">@liters($summary['total_liters'])</dd>
+                            @if ($summary['relief']['liters'] > 0)
+                                <dt class="col-7 fw-normal text-secondary ps-3 small">of which on relief</dt>
+                                <dd class="col-5 text-end small text-success">@liters($summary['relief']['liters'])</dd>
+                            @endif
                             <dt class="col-7 fw-normal text-secondary">Fuel sales</dt>
                             <dd class="col-5 text-end ft-num">@money($summary['fuel_sales'])</dd>
                             <dt class="col-7 fw-normal text-secondary">Counter items</dt>
@@ -66,11 +71,25 @@
                                 </div>
                             @endif
                             <div class="col-12">
+                                @if ($summary['relief']['amount'] > 0)
+                                    @include('closings.partials.relief-explainer', ['relief' => $summary['relief'], 'date' => $date->toDateString()])
+                                    @if ($method !== 'PUT')
+                                        <a href="{{ route('relief.index', ['date' => $date->toDateString(), 'return' => 'closing']) }}" class="small d-inline-block mt-1"><i class="bi bi-pencil me-1"></i>Change relief</a>
+                                    @endif
+                                @elseif ($method !== 'PUT' && \App\Support\StaffAccess::can(auth()->user(), 'relief'))
+                                    <div class="relief-prompt">
+                                        <i class="bi bi-patch-check fs-4 text-success"></i>
+                                        <div class="flex-grow-1 small"><strong>Sold petrol on PM Fuel Relief today?</strong><br>Enter the tokens and relief amount from the government system first, so the cash matches.</div>
+                                        <a href="{{ route('relief.index', ['date' => $date->toDateString(), 'return' => 'closing']) }}" class="btn btn-sm btn-outline-success text-nowrap">Enter relief</a>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="col-12">
                                 <div class="d-flex justify-content-between bg-body-tertiary rounded p-2">
                                     <span class="text-secondary">Cash sales</span>
                                     <span class="fw-bold" :class="cashSales < 0 && 'text-danger'" x-text="money(cashSales)"></span>
                                 </div>
-                                <div class="small text-danger mt-1" x-show="cashSales < 0" x-cloak>Card + credit fuel given cannot exceed total sales.</div>
+                                <div class="small text-danger mt-1" x-show="cashSales < 0" x-cloak>Card + credit fuel given{{ $summary['relief']['amount'] > 0 ? ' + fuel relief' : '' }} cannot exceed total sales.</div>
                             </div>
                         </div>
                     </div>
@@ -91,6 +110,7 @@
                         <table class="table table-sm mb-3">
                             <tr><td class="text-secondary">Opening cash</td><td class="text-end" x-text="money(num(openingCash))"></td></tr>
                             <tr><td class="text-secondary">+ Cash sales</td><td class="text-end" x-text="money(cashSales)"></td></tr>
+                            <tr x-show="relief > 0"><td class="text-secondary small ps-3">after <span x-text="money(relief)"></span> fuel relief, paid by the government</td><td></td></tr>
                             <tr x-show="receipts > 0"><td class="text-secondary">+ Received from credit customers</td><td class="text-end" x-text="money(receipts)"></td></tr>
                             <tr><td class="text-secondary">− Cash expenses</td><td class="text-end" x-text="money(-cashExpenses)"></td></tr>
                             <tr x-show="supplierCash > 0"><td class="text-secondary">− Cash paid to suppliers</td><td class="text-end" x-text="money(-supplierCash)"></td></tr>
@@ -161,7 +181,7 @@
                 },
 
                 get cashSales() {
-                    return this.round(this.totalSales - this.num(this.cardSales) - this.creditSales);
+                    return this.round(this.totalSales - this.num(this.cardSales) - this.creditSales - this.relief);
                 },
 
                 get expectedCash() {
