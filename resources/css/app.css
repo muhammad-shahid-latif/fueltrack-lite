@@ -1039,6 +1039,11 @@ th.ft-num {
     gap: 1.25rem;
 }
 
+/* Six networks: balanced 3 + 3 on wide screens instead of 5 + 1. */
+@media (min-width: 992px) {
+    .network-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 .network-card {
     position: relative;
     display: flex;

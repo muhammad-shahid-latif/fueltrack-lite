@@ -103,4 +103,22 @@ return [
         'stripe' => ['#a6ce39', '#e31e24'],
     ],
 
+    'askar' => [
+        'name' => 'Askar',
+        'full_name' => 'Askar Oil Services',
+        'monogram' => 'ASK',
+        // From askaroil.com.pk: deep navy header, logo blue and orange.
+        'colors' => [
+            'surface-900' => '#10132b',
+            'surface-800' => '#181b39',
+            'surface-700' => '#232a5c',
+            'surface-500' => '#0060b4',
+            'accent' => '#eb6e12',
+            'on-accent' => '#ffffff',
+            'led' => '#ff9a3c',
+            'ground' => '#f1f4f9',
+        ],
+        'stripe' => ['#0060b4', '#eb6e12', '#181b39'],
+    ],
+
 ];
