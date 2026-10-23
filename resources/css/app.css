@@ -1039,9 +1039,13 @@ th.ft-num {
     gap: 1.25rem;
 }
 
-/* Six networks: balanced 3 + 3 on wide screens instead of 5 + 1. */
-@media (min-width: 992px) {
+/* Six networks: one slim row on wide screens, 3 + 3 on laptops, never 5 + 1. */
+@media (min-width: 768px) {
     .network-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+    .network-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1rem; }
+    .network-grid .network-card-body { padding-left: 1rem; padding-right: 1rem; }
 }
 
 .network-card {
