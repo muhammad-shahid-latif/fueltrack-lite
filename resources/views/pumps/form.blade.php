@@ -1,6 +1,93 @@
 @php($editing = $pump->exists)
 
-<x-layouts.app :title="$editing ? 'Manage '.$pump->name : 'Add pump'" :subtitle="$editing ? 'Rename, take out of service, or manage its nozzles' : 'Nozzles are added on the next step'">
+<x-layouts.app :title="$editing ? 'Manage '.$pump->name : 'Add pump'" :subtitle="$editing ? 'Rename, take out of service, or manage its nozzles' : 'Pick how many nozzles the machine has and fill in each one'">
+    @unless ($editing)
+        @php($fuelList = $fuels->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'grade' => \App\Support\Grade::cssClass($f)])->values())
+        @php($tankList = $tanks->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'fuel' => $t->fuel_product_id])->values())
+        @php($oldNozzles = array_values((array) old('nozzles', [])))
+        <form method="POST" action="{{ route('pumps.store') }}" novalidate class="row g-4"
+              x-data="pumpBuilder(@js($fuelList), @js($tankList), @js($oldNozzles))">
+            @csrf
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">Pump</div>
+                    <div class="card-body p-4">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" id="name" name="name" value="{{ old('name', $pump->name) }}" maxlength="50"
+                               class="form-control form-control-lg @error('name') is-invalid @enderror" required>
+                        @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
+
+                        <span class="form-label d-block mt-4">Nozzles on this machine</span>
+                        <div class="machine-types">
+                            @foreach ([1 => 'Single', 2 => 'Double', 4 => 'Quad'] as $n => $label)
+                                <button type="button" class="machine-type" :class="count === {{ $n }} && 'active'" @click="setCount({{ $n }})" :aria-pressed="count === {{ $n }}">
+                                    <span class="machine-type-heads" aria-hidden="true">@for ($i = 0; $i < $n; $i++)<i></i>@endfor</span>
+                                    <strong>{{ $n }}</strong>
+                                    <span>{{ $label }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-2 small">
+                            <span class="text-secondary">Other:</span>
+                            <button type="button" class="btn btn-sm btn-light" @click="setCount(count - 1)" :disabled="count <= 0" aria-label="One nozzle less"><i class="bi bi-dash"></i></button>
+                            <span class="ft-num fw-bold" x-text="count"></span>
+                            <button type="button" class="btn btn-sm btn-light" @click="setCount(count + 1)" :disabled="count >= {{ \App\Http\Requests\SavePumpRequest::MAX_NOZZLES }}" aria-label="One nozzle more"><i class="bi bi-plus"></i></button>
+                        </div>
+                        @error('nozzles') <div class="small text-danger mt-2">{{ $message }}</div> @enderror
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-warning flex-grow-1" x-text="count ? 'Add pump with ' + count + (count === 1 ? ' nozzle' : ' nozzles') : 'Add pump'">Add pump</button>
+                            <a href="{{ route('pumps.index') }}" class="btn btn-light">Back</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card dispenser h-100">
+                    <div class="dispenser-head">
+                        <span class="dispenser-name" x-text="count ? 'Nozzles' : 'No nozzles yet'">Nozzles</span>
+                        <span class="small text-white-50">Fuel, the tank it draws from, and the meter reading now</span>
+                    </div>
+                    @if ($fuels->isEmpty())
+                        <div class="empty-state py-4">Add an active fuel product first. The pump can be added now and nozzles later.</div>
+                    @endif
+                    <template x-for="(row, i) in rows" :key="row.key">
+                        <div class="nozzle-row flex-wrap" :class="gradeOf(row.fuel)">
+                            <span class="nozzle-badge" x-text="i + 1"></span>
+                            <div class="flex-grow-1" style="min-width: 150px;">
+                                <label class="form-label small mb-1" :for="'nf_' + i">Fuel</label>
+                                <select class="form-select form-select-sm" :id="'nf_' + i" :name="`nozzles[${i}][fuel_product_id]`" x-model.number="row.fuel" @change="row.tank = firstTank(row.fuel)">
+                                    <template x-for="f in fuels" :key="f.id"><option :value="f.id" :selected="f.id === row.fuel" x-text="f.name"></option></template>
+                                </select>
+                            </div>
+                            <div style="min-width: 150px;">
+                                <label class="form-label small mb-1" :for="'nt_' + i">Tank</label>
+                                <select class="form-select form-select-sm" :id="'nt_' + i" :name="`nozzles[${i}][tank_id]`" x-model="row.tank">
+                                    <option value="">No tank linked</option>
+                                    <template x-for="t in tanksFor(row.fuel)" :key="t.id"><option :value="t.id" :selected="String(t.id) === String(row.tank)" x-text="t.name"></option></template>
+                                </select>
+                            </div>
+                            <div style="width: 170px;">
+                                <label class="form-label small mb-1" :for="'nm_' + i">Meter reading now</label>
+                                <input type="text" inputmode="decimal" class="form-control form-control-sm ft-num" :id="'nm_' + i" :name="`nozzles[${i}][opening_meter]`" x-model="row.meter" placeholder="0.00">
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="count === 0">
+                        <div class="empty-state py-4">No nozzles: the pump is added on its own and nozzles can be added after.</div>
+                    </template>
+                    @if ($errors->has('nozzles.*'))
+                        <div class="px-4 pb-3">
+                            @foreach ($errors->get('nozzles.*') as $messages)
+                                <div class="small text-danger">{{ $messages[0] }}</div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </form>
+    @else
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="card">
@@ -160,4 +247,5 @@
             </div>
         @endif
     </div>
+    @endunless
 </x-layouts.app>

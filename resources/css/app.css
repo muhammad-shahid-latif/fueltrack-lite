@@ -2998,3 +2998,38 @@ form[aria-busy="true"] { cursor: progress; }
 }
 .relief-liters strong { font-family: var(--ft-font-display); font-size: 1.1rem; line-height: 1.1; color: #0b7a4c; }
 .relief-liters span { font-size: 0.72rem; color: var(--ft-ink-soft); }
+
+/* ---------- Add pump: machine type ---------- */
+.machine-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.machine-type {
+    display: flex; flex-direction: column; align-items: center; gap: 0.15rem;
+    padding: 0.75rem 0.5rem 0.6rem;
+    border: 2px solid var(--ft-line);
+    border-radius: var(--ft-radius-sm);
+    background: #fff;
+    color: var(--ft-ink);
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.machine-type strong { font-family: var(--ft-font-display); font-size: 1.35rem; line-height: 1; }
+.machine-type > span:last-child { font-size: 0.74rem; color: var(--ft-ink-soft); }
+.machine-type:hover { border-color: color-mix(in srgb, var(--ft-amber) 55%, var(--ft-line)); }
+.machine-type.active {
+    border-color: var(--ft-amber);
+    background: color-mix(in srgb, var(--ft-amber) 10%, #fff);
+    box-shadow: 0 6px 16px -10px color-mix(in srgb, var(--ft-amber) 80%, transparent);
+}
+.machine-type-heads { display: flex; gap: 3px; height: 14px; align-items: flex-end; margin-bottom: 0.25rem; }
+.machine-type-heads i { display: block; width: 7px; height: 14px; border-radius: 3px 3px 1px 1px; background: var(--ft-canopy-700); }
+.machine-type.active .machine-type-heads i { background: var(--ft-amber-deep); }
+
+/* ---------- Settings: reset data ---------- */
+.danger-zone { border: 1px solid color-mix(in srgb, #dc3545 35%, var(--ft-line)); }
+.reset-option {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    padding: 0.85rem 1rem;
+    border: 2px solid var(--ft-line);
+    border-radius: var(--ft-radius-sm);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.reset-option.active { border-color: #dc3545; background: color-mix(in srgb, #dc3545 5%, #fff); }

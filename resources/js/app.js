@@ -21,6 +21,7 @@ import { customerFilter, receivePayment } from './khata';
 import owedGive from './owed-give';
 import owedSplit from './owed-split';
 import shiftPlanner from './shift-planner';
+import pumpBuilder from './pump-builder';
 
 window.bootstrap = bootstrap;
 window.Alpine = Alpine;
@@ -36,6 +37,7 @@ Alpine.data('owedGive', owedGive);
 Alpine.data('receivePayment', receivePayment);
 Alpine.data('customerFilter', customerFilter);
 Alpine.data('shiftPlanner', shiftPlanner);
+Alpine.data('pumpBuilder', pumpBuilder);
 
 Alpine.start();
 

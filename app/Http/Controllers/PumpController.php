@@ -7,6 +7,7 @@ use App\Models\FuelProduct;
 use App\Models\Pump;
 use App\Models\Tank;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PumpController extends Controller
@@ -26,21 +27,41 @@ class PumpController extends Controller
     {
         return view('pumps.form', [
             'pump' => new Pump(['name' => $this->suggestedName(), 'is_active' => true]),
-            'fuels' => collect(),
-            'tanks' => collect(),
+            'fuels' => FuelProduct::query()->fuel()->active()->orderBy('id')->get(),
+            'tanks' => Tank::query()->active()->orderBy('name')->get(['id', 'name', 'fuel_product_id']),
         ]);
     }
 
     public function store(SavePumpRequest $request): RedirectResponse
     {
-        $pump = Pump::create([
-            'name' => $request->string('name')->trim()->toString(),
-            'is_active' => true,
-        ]);
+        $nozzles = array_values((array) $request->validated('nozzles', []));
+
+        $pump = DB::transaction(function () use ($request, $nozzles) {
+            $pump = Pump::create([
+                'name' => $request->string('name')->trim()->toString(),
+                'is_active' => true,
+            ]);
+
+            foreach ($nozzles as $i => $nozzle) {
+                $pump->nozzles()->create([
+                    'number' => $i + 1,
+                    'fuel_product_id' => (int) $nozzle['fuel_product_id'],
+                    'tank_id' => ($nozzle['tank_id'] ?? null) ?: null,
+                    'current_meter' => $nozzle['opening_meter'],
+                    'is_active' => true,
+                ]);
+            }
+
+            return $pump;
+        });
+
+        $count = count($nozzles);
 
         return redirect()
             ->route('pumps.edit', $pump)
-            ->with('success', "{$pump->name} added. Now add its nozzles.");
+            ->with('success', $count > 0
+                ? "{$pump->name} added with {$count} ".str('nozzle')->plural($count).'.'
+                : "{$pump->name} added. Now add its nozzles.");
     }
 
     public function edit(Pump $pump): View

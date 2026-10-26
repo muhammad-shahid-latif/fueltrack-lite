@@ -7,6 +7,7 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DailyClosingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DataResetController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\FuelProductController;
@@ -85,6 +86,7 @@ Route::middleware(['auth', 'staff.access'])->group(function () {
     Route::middleware('role:owner')->group(function () {
         Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
         Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
+        Route::post('/settings/reset', DataResetController::class)->middleware('throttle:5,1')->name('settings.reset');
         Route::get('/settings/shifts', [ShiftSettingController::class, 'edit'])->name('shifts.edit');
         Route::put('/settings/shifts', [ShiftSettingController::class, 'update'])->name('shifts.update');
         Route::get('/settings/manager-access', [StaffAccessController::class, 'edit'])->name('access.edit');

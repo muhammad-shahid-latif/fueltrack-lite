@@ -53,6 +53,70 @@
                     </form>
                 </div>
             </div>
+
+            @php($resetOpen = $errors->hasAny(['scope', 'confirm', 'password']))
+            <form method="POST" action="{{ route('settings.reset') }}" novalidate class="card danger-zone mt-4"
+                  x-data="{ open: @js($resetOpen), scope: @js(old('scope', 'records')), confirm: '', password: '', sending: false }"
+                  @submit="if (confirm !== 'RESET' || password === '') { $event.preventDefault(); return; } sending = true">
+                @csrf
+                <div class="card-header d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-octagon-fill text-danger"></i>
+                    <span class="me-auto">Reset data</span>
+                    <button type="button" class="btn btn-sm btn-outline-danger" x-show="! open" @click="open = true">Start over…</button>
+                </div>
+                <div class="card-body p-4">
+                    <p class="small text-secondary mb-0" x-show="! open">Erase the demo data, or every record, to start using FuelTrack for real. Logins and settings are always kept.</p>
+
+                    <template x-if="open">
+                        <div>
+                            <div class="vstack gap-2 mb-3">
+                                <label class="reset-option" :class="scope === 'records' && 'active'">
+                                    <input type="radio" name="scope" value="records" x-model="scope" class="form-check-input mt-1">
+                                    <span>
+                                        <strong class="d-block">Erase records, keep station setup</strong>
+                                        <span class="small text-secondary">Deletes meter readings, sales, khata, payments, expenses, closings, deliveries, payroll, fuel relief, the audit trail, and all customers, suppliers and staff. <strong>Keeps</strong> fuel products and prices, tanks, pumps and nozzles. Today's stock and meter positions carry over.</span>
+                                    </span>
+                                </label>
+                                <label class="reset-option" :class="scope === 'everything' && 'active'">
+                                    <input type="radio" name="scope" value="everything" x-model="scope" class="form-check-input mt-1">
+                                    <span>
+                                        <strong class="d-block">Erase everything (fresh start)</strong>
+                                        <span class="small text-secondary">All of the above plus fuel products, prices, tanks, pumps and nozzles. Only logins and settings remain. Use this to remove the demo completely.</span>
+                                    </span>
+                                </label>
+                            </div>
+                            @error('scope') <div class="small text-danger mb-2">{{ $message }}</div> @enderror
+
+                            <div class="alert alert-danger small d-flex gap-2 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span>This cannot be undone. Take a backup of the database first if any of this data matters.</span>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-sm-6">
+                                    <label for="reset_confirm" class="form-label small">Type <strong>RESET</strong> to confirm</label>
+                                    <input type="text" id="reset_confirm" name="confirm" x-model="confirm" autocomplete="off" spellcheck="false"
+                                           class="form-control ft-num @error('confirm') is-invalid @enderror">
+                                    @error('confirm') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                                <div class="col-sm-6">
+                                    <label for="reset_password" class="form-label small">Your password</label>
+                                    <input type="password" id="reset_password" name="password" x-model="password" autocomplete="current-password"
+                                           class="form-control @error('password') is-invalid @enderror">
+                                    @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+                                <button type="button" class="btn btn-light" @click="open = false; confirm = ''; password = ''">Cancel</button>
+                                <button type="submit" class="btn btn-danger px-4" :disabled="sending || confirm !== 'RESET' || password === ''">
+                                    <i class="bi bi-trash3 me-1"></i><span x-text="scope === 'records' ? 'Erase records' : 'Erase everything'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </form>
         </div>
 
         <div class="col-lg-5">

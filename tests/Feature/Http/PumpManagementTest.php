@@ -112,3 +112,43 @@ function readingFormNozzles(User $user): array
         ->pluck('label')
         ->all();
 }
+
+test('a pump can be added with four nozzles in one step', function () {
+    $petrol = FuelProduct::firstWhere('code', 'petrol');
+    $diesel = $this->diesel;
+    $petrolTank = \App\Models\Tank::firstWhere('fuel_product_id', $petrol->id);
+
+    $this->actingAs($this->owner)
+        ->post(route('pumps.store'), [
+            'name' => 'Pump 09',
+            'nozzles' => [
+                ['fuel_product_id' => $petrol->id, 'tank_id' => $petrolTank->id, 'opening_meter' => '1000'],
+                ['fuel_product_id' => $petrol->id, 'tank_id' => '', 'opening_meter' => '2000'],
+                ['fuel_product_id' => $diesel->id, 'tank_id' => '', 'opening_meter' => '3000'],
+                ['fuel_product_id' => $diesel->id, 'tank_id' => '', 'opening_meter' => '4000.5'],
+            ],
+        ])
+        ->assertSessionHas('success', fn (string $m) => str_contains($m, 'with 4 nozzles'));
+
+    $pump = Pump::firstWhere('name', 'Pump 09');
+
+    expect($pump->nozzles()->orderBy('number')->pluck('number')->all())->toBe([1, 2, 3, 4])
+        ->and((float) $pump->nozzles()->where('number', 4)->value('current_meter'))->toBe(4000.5)
+        ->and($pump->nozzles()->where('number', 1)->value('tank_id'))->toBe($petrolTank->id);
+
+    // All four show on the reading form.
+    $this->actingAs($this->owner)->get(route('meter-readings.create'))->assertOk()->assertSee('Pump 09');
+});
+
+test('a nozzle cannot draw from a tank of another fuel', function () {
+    $petrolTank = \App\Models\Tank::firstWhere('fuel_product_id', FuelProduct::firstWhere('code', 'petrol')->id);
+
+    $this->actingAs($this->owner)
+        ->post(route('pumps.store'), [
+            'name' => 'Pump 10',
+            'nozzles' => [['fuel_product_id' => $this->diesel->id, 'tank_id' => $petrolTank->id, 'opening_meter' => '10']],
+        ])
+        ->assertSessionHasErrors('nozzles.0.tank_id');
+
+    expect(Pump::firstWhere('name', 'Pump 10'))->toBeNull();
+});

@@ -36,6 +36,7 @@ class ActivityLog extends Model
         Employee::class => 'Employees',
         SalaryAdvance::class => 'Salary advances',
         SalarySlip::class => 'Salary slips',
+        User::class => 'Data reset',
     ];
 
     /** Models that make up the payroll audit trail. */
@@ -83,7 +84,7 @@ class ActivityLog extends Model
         return match ($this->event) {
             'created' => 'text-bg-success',
             'updated' => 'text-bg-warning',
-            'deleted' => 'text-bg-danger',
+            'deleted', 'reset' => 'text-bg-danger',
             default => 'text-bg-secondary',
         };
     }
